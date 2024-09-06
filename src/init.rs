@@ -1,8 +1,9 @@
-use x11::xlib::{PropModeReplace, XDefaultGC, XFlush, XMapWindow, XWhitePixel, XA_WINDOW};
+use x11::xlib::{CWCursor, CWEventMask, PropModeReplace, XChangeWindowAttributes, XDefaultGC, XFlush, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
 use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow, XSync};
 use std::ffi::CStr;
 use std::ffi::CString;
-use crate::state::{WmAtoms, NetAtoms};
+use std::ptr::null;
+use crate::state::{Cursor, NetAtoms, WmAtoms};
 
 use super::error;
 use super::state;
@@ -24,11 +25,9 @@ macro_rules! init_atom {
     }};
 }
 
-macro_rules! init_atoms {
-    ($dpy:expr, [ $($name:expr),* ]) => {{
-        vec![
-            $( init_atom!($dpy, $name), )*
-        ]
+macro_rules! init_cursor {
+    ($dpy:expr, $ty:expr) => {{
+        unsafe {xlib::XCreateFontCursor($dpy, $ty)}
     }};
 }
 
@@ -47,19 +46,42 @@ pub fn setup(dpy: &mut xlib::Display) {
             check: init_atom!(dpy, "_NET_SUPPORTING_WM_CHECK"),
             fullscreen: init_atom!(dpy, "FULLSCREEN"),
             wtype: init_atom!(dpy, "_NET_WINDOW_TYPE")
+        },
+
+        cursor: Cursor {
+            normal: init_cursor!(dpy, 68 /* XC left ptr */),
+            resize: init_cursor!(dpy, 120 /* XC sizing */),
+            mov: init_cursor!(dpy, 52  /* XC fleur */)
         }
     };
 
     unsafe {
         let screen =  xlib::XDefaultScreen(dpy);
         let root: u64 = xlib::XRootWindow(dpy, screen);
-        let wmwindow : xlib::Window = XCreateSimpleWindow(dpy, root, 10, 10, 100, 100, 1, 0, XWhitePixel(dpy, screen));
-        xlib::XFillRectangle(dpy, wmwindow, XDefaultGC(dpy, screen), 20, 20, 10, 10);
-        xlib::XMapWindow(dpy, wmwindow);
 
-        xlib::XFlush(dpy);
-        
-        loop {}
+        XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor,  &mut XSetWindowAttributes {
+            background_pixmap: 0,
+            background_pixel: 0,
+            border_pixmap: xlib::CopyFromParent as u64,
+            border_pixel: 0,
+            bit_gravity: xlib::ForgetGravity,
+            win_gravity: xlib::NorthWestGravity,
+            backing_store: 0,
+            backing_planes: 1,
+            backing_pixel: 0,
+            save_under: 0,
+            event_mask: xlib::SubstructureRedirectMask | 
+                        xlib::SubstructureNotifyMask | 
+                        xlib::PointerMotionHintMask | 
+                        xlib::EnterWindowMask | 
+                        xlib::LeaveWindowMask | 
+                        xlib::StructureNotifyMask | 
+                        xlib::PropertyChangeMask,
+            do_not_propagate_mask: 0,
+            override_redirect: 0,
+            colormap: xlib::CopyFromParent as u64,
+            cursor: state.cursor.normal
+        });
     }
 
 }

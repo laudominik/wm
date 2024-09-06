@@ -2,6 +2,7 @@ use x11::xlib;
 
 pub type WmAtoms = WmAtoms_<xlib::Atom>; 
 pub type NetAtoms = NetAtoms_<xlib::Atom>;
+pub type Cursor = Cursor_<xlib::Cursor>;
 
 pub struct NetAtoms_<T> {
     pub active_window: T,
@@ -19,7 +20,14 @@ pub struct WmAtoms_<T> {
     pub take_focus: T
 }
 
+pub struct Cursor_<T> {
+    pub normal: T,
+    pub resize: T,
+    pub mov: T
+}
+
 pub struct State {
     pub wmatom: WmAtoms,
-    pub netatom: NetAtoms
+    pub netatom: NetAtoms,
+    pub cursor: Cursor
 }
