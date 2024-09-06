@@ -1,0 +1,5 @@
+#!/bin/sh
+
+export XROAGWEM_PATH=target/debug/xroagwem
+
+Xephyr :1 & sleep 1 ; DISPLAY=:1 $XROAGWEM_PATH

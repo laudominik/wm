@@ -1,0 +1,9 @@
+[package]
+name = "xroagwem"
+version = "0.1.0"
+edition = "2021"
+links = "X11"
+build = "build.rs"
+
+[dependencies]
+x11 = "2.21.0"
