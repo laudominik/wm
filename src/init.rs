@@ -31,35 +31,41 @@ macro_rules! init_cursor {
     }};
 }
 
-pub fn setup(dpy: &mut xlib::Display) {
-    let state = state::State {
-        wmatom: WmAtoms { 
-            protocols: init_atom!(dpy, "WM_PROTOCOLS"), 
-            delete: init_atom!(dpy, "WM_DELETE_WINDOW"), 
-            state: init_atom!(dpy, "WM_STATE"), 
-            take_focus: init_atom!(dpy, "WM_TAKE_FOCUS") 
-        },
-        netatom: NetAtoms { 
-            active_window: init_atom!(dpy, "ACTIVE_WINDOW"), 
-            supported: init_atom!(dpy, "_NET_SUPPORTED"), 
-            state: init_atom!(dpy, "_NET_WM_STATE"),
-            check: init_atom!(dpy, "_NET_SUPPORTING_WM_CHECK"),
-            fullscreen: init_atom!(dpy, "FULLSCREEN"),
-            wtype: init_atom!(dpy, "_NET_WINDOW_TYPE")
-        },
-
-        cursor: Cursor {
-            normal: init_cursor!(dpy, 68 /* XC left ptr */),
-            resize: init_cursor!(dpy, 120 /* XC sizing */),
-            mov: init_cursor!(dpy, 52  /* XC fleur */)
-        }
-    };
+pub fn setup(dpy: &mut xlib::Display) -> state::State {
+    let state: state::State;
+    {
+        let screen =  unsafe { xlib::XDefaultScreen(dpy) };
+        let root: u64 = unsafe { xlib::XRootWindow(dpy, screen) };
+    
+        state = state::State {
+            screen: screen,
+            root: root,
+            wmatom: WmAtoms { 
+                protocols: init_atom!(dpy, "WM_PROTOCOLS"), 
+                delete: init_atom!(dpy, "WM_DELETE_WINDOW"), 
+                state: init_atom!(dpy, "WM_STATE"), 
+                take_focus: init_atom!(dpy, "WM_TAKE_FOCUS") 
+            },
+            netatom: NetAtoms { 
+                active_window: init_atom!(dpy, "ACTIVE_WINDOW"), 
+                supported: init_atom!(dpy, "_NET_SUPPORTED"), 
+                state: init_atom!(dpy, "_NET_WM_STATE"),
+                check: init_atom!(dpy, "_NET_SUPPORTING_WM_CHECK"),
+                fullscreen: init_atom!(dpy, "FULLSCREEN"),
+                wtype: init_atom!(dpy, "_NET_WINDOW_TYPE")
+            },
+    
+            cursor: Cursor {
+                normal: init_cursor!(dpy, 68 /* XC left ptr */),
+                resize: init_cursor!(dpy, 120 /* XC sizing */),
+                mov: init_cursor!(dpy, 52  /* XC fleur */)
+            },
+            dpy: dpy,
+        };
+    }
 
     unsafe {
-        let screen =  xlib::XDefaultScreen(dpy);
-        let root: u64 = xlib::XRootWindow(dpy, screen);
-
-        XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor,  &mut XSetWindowAttributes {
+        XChangeWindowAttributes(state.dpy, state.root, CWEventMask | CWCursor,  &mut XSetWindowAttributes {
             background_pixmap: 0,
             background_pixel: 0,
             border_pixmap: xlib::CopyFromParent as u64,
@@ -84,4 +90,5 @@ pub fn setup(dpy: &mut xlib::Display) {
         });
     }
 
+    state
 }

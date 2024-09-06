@@ -26,8 +26,11 @@ pub struct Cursor_<T> {
     pub mov: T
 }
 
-pub struct State {
+pub struct State<'a> {
+    pub screen: i32,
+    pub root : xlib::Window,
     pub wmatom: WmAtoms,
     pub netatom: NetAtoms,
-    pub cursor: Cursor
+    pub cursor: Cursor,
+    pub dpy: &'a mut xlib::Display,
 }
