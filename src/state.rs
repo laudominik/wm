@@ -1,6 +1,6 @@
 use x11::xlib;
 
-use crate::wm;
+use crate::{style::{ColorSchemesXft}, wm};
 
 pub type WmAtoms = WmAtoms_<xlib::Atom>; 
 pub type NetAtoms = NetAtoms_<xlib::Atom>;
@@ -37,4 +37,5 @@ pub struct State<'a> {
     pub dpy: &'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
     pub active_workspace: usize,
+    pub colors : ColorSchemesXft
 }

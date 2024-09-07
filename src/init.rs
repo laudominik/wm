@@ -1,11 +1,15 @@
-use x11::xlib::{CWCursor, CWEventMask, PropModeReplace, XChangeWindowAttributes, XDefaultGC, XFlush, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
+use x11::xft::{XftColor, XftColorAllocName};
+use x11::xlib::{CWCursor, CWEventMask, PropModeReplace, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
 use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow, XSync};
+use x11::xrender::XRenderColor;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr::null;
+use std::mem;
 
+use crate::config::STYLE;
 use crate::wm;
-use crate::style;
+use crate::style::{self};
 use crate::state::{Cursor, NetAtoms, WmAtoms};
 
 use super::error;
@@ -35,7 +39,7 @@ macro_rules! init_cursor {
 }
 
 pub fn setup(dpy: &mut xlib::Display) -> state::State {
-    let state: state::State;
+    let mut state: state::State;
     {
         let screen =  unsafe { xlib::XDefaultScreen(dpy) };
         let root: u64 = unsafe { xlib::XRootWindow(dpy, screen) };
@@ -66,8 +70,11 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             dpy: dpy,
             workspaces: Vec::new(),
             active_workspace: 0,
+            colors: unsafe { mem::zeroed() }
         };
     }
+    
+    state.colors = STYLE.colors.to_xft(&mut state);
 
     unsafe {
         XChangeWindowAttributes(state.dpy, state.root, CWEventMask | CWCursor,  &mut XSetWindowAttributes {

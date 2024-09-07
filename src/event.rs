@@ -2,7 +2,7 @@ use std::mem;
 
 use x11::xlib::{self, CWBorderWidth, False, Window, XConfigureWindow, XFlush, XGetWindowAttributes, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
-use crate::{state::State, style::STYLE, wm::Tile};
+use crate::{state::State, config::STYLE, wm::Tile};
 
 
 macro_rules! callback {
