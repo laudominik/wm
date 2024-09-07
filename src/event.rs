@@ -24,5 +24,5 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     println!("Map request");
     let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
     if( unsafe { XGetWindowAttributes(state.dpy, ev.window, &mut wa) } == 0) { return };
-    wm::add_window();
+    //wm::add_window();
 }   

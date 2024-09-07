@@ -61,6 +61,8 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
                 mov: init_cursor!(dpy, 52  /* XC fleur */)
             },
             dpy: dpy,
+            workspaces: Vec::new(),
+            active_workspace: 0
         };
     }
 

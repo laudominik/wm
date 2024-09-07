@@ -1,12 +1,13 @@
 
 use x11::xlib::{self, XNextEvent};
-use std::{mem, process::exit, ptr};
+use std::{env, mem, process::exit, ptr};
 
 mod init;
 mod error;
 mod state;
 mod event;
 mod wm;
+mod config;
 
 pub fn loop_poll_events(state: &mut state::State){
     let mut ev : xlib::XEvent = unsafe { mem::zeroed() };
@@ -14,7 +15,7 @@ pub fn loop_poll_events(state: &mut state::State){
 }
 
 pub fn main() {    
-
+    env::set_var("DISPLAY", ":1");
     match Some(unsafe{&mut(*xlib::XOpenDisplay(ptr::null()))}) {
         None => {
             println!("Cannot initialize display!");
@@ -23,7 +24,7 @@ pub fn main() {
         Some(dpy) => {
             init::check_other_wms(dpy);
             let mut state = init::setup(dpy);
-
+            config::make(&mut state);
             loop_poll_events(&mut state);
         }
     }    
