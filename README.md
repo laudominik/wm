@@ -5,5 +5,7 @@ Window manager written in Rust. Heavily inspired by DWM. The goal is to support 
 * wallpaper
 * spawning some scripts with shell on startup
 * top bar
+* keybindings
+* two screens support
 
 See [config.rs](src/config.rs) for my wm configuration.

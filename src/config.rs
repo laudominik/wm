@@ -16,7 +16,7 @@ pub static STYLE: Style = Style {
             border: "#222"
        }
     },
-    border_thickness: 5,
+    border_thickness: 3,
     useless_gap: 5
 };
 

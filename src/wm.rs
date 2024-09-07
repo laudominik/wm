@@ -16,31 +16,42 @@ pub struct _Tile {
 impl state::State<'_> {
     pub fn cascade_autotiling(&mut self){
         let useless_gap: u32 = STYLE.useless_gap;
+        let border = STYLE.border_thickness;
         let screen_width = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
         let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
-        let active_workspace = &mut self.workspaces[self.active_workspace];
         
-        let maybe_latest_window: Option<&u64> = active_workspace.windows.last();
+        let maybe_latest_window: Option<&u64> = self.workspaces[self.active_workspace].windows.last();
         if(maybe_latest_window.is_none()) { return };
+        
         let latest_window = maybe_latest_window.unwrap();
-        if active_workspace.windows.len() == 1 {
+        if self.workspaces[self.active_workspace].windows.len() == 1 {
             latest_window.do_map(self, (
                 useless_gap as i32, useless_gap as i32, 
-                screen_width - useless_gap * 2, screen_height - useless_gap * 2));
+                screen_width - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
+            ));
             return;
         } 
         
-        // it's cascade with special treatment for latest window
-        // latest_window.do_map(self, (
-        //     useless_gap as i32, useless_gap as i32,
-        //     screen_width / 2 - useless_gap * 3/2, screen_height / 2 - useless_gap * 3/2
-        // ));
+        latest_window.do_map(self, (
+            useless_gap as i32, useless_gap as i32,
+            screen_width / 2 - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
+        ));
 
-        // active_workspace.windows[0].do_map(self, 
-        //     (useless_gap + screen_width / 2, useless_gap + )
-        // );
+        let len_rest = self.workspaces[self.active_workspace].windows.len() - 1;
+        let increment = screen_height / len_rest as u32;
+
+        for i in 0..len_rest {
+            let start_y = increment * i as u32 + useless_gap;
+
+            self.workspaces[self.active_workspace].windows[i].do_map(self, (
+                (useless_gap / 2 + screen_width / 2) as i32, start_y as i32, 
+                screen_width / 2 - useless_gap * 2 - border * 2, increment - useless_gap * 2 - border * 2
+            ));
+        }
     }
 }
+
+
 
 trait WindowExt {
     fn do_map(self, state: &mut state::State, rect: (i32, i32, u32, u32));
