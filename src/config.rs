@@ -49,8 +49,16 @@ macro_rules! spawn_with_shell {
             .env("DISPLAY", ":1")
             $(    
                 .arg($arg)
-            )*.output().expect("Failed to execute command")
+            )*.spawn().expect("Failed to execute command")
     }};
+
+    ($command:expr) => {
+        {
+            Command::new($command)
+            .env("DISPLAY", ":1")
+            .spawn().expect("Failed to execute command");
+        }
+    }
 }
 
 /* your private config goes here */
@@ -63,6 +71,7 @@ pub fn make(state: &mut state::State){
     );
 
     spawn_with_shell!("nitrogen", ["--restore"]);
+    spawn_with_shell!("picom");
 }
 
 impl state::State<'_> {
