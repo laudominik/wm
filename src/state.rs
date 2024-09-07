@@ -37,5 +37,8 @@ pub struct State<'a> {
     pub dpy: &'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
     pub active_workspace: usize,
-    pub colors : ColorSchemesXft
+    pub colors : ColorSchemesXft,
+    pub keybindings: Vec<Keybinding>
 }
+
+pub struct Keybinding {}

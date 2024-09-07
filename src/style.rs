@@ -12,7 +12,8 @@ pub type ColorSchemeXft = ColorScheme_<XftColor>;
 
 pub struct Style {
     pub colors: ColorSchemes,
-    pub border_thickness: i32
+    pub border_thickness: u32,
+    pub useless_gap: u32
 }
 
 pub struct ColorSchemes_<T> {

@@ -1,0 +1,5 @@
+#!/bin/sh
+export TESTAPP=snes9x-gtk
+export DISPLAY=":1"
+
+$TESTAPP

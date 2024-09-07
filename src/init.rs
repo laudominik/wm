@@ -70,7 +70,8 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             dpy: dpy,
             workspaces: Vec::new(),
             active_workspace: 0,
-            colors: unsafe { mem::zeroed() }
+            colors: unsafe { mem::zeroed() },
+            keybindings: Vec::new()
         };
     }
     
