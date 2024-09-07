@@ -1,9 +1,10 @@
-use crate::state;
+use crate::state::{self};
+use crate::wm;
 
-macro_rules! set_workspaces {
+macro_rules! set_spaces {
     ($state:expr, [ $($tag:expr),* ]) => {{
         $(    
-            $state.workspaces.push(state::Wspace {
+            $state.workspaces.push(wm::Space {
                 tag: $tag,
                 windows: Vec::new()
             });
@@ -13,5 +14,5 @@ macro_rules! set_workspaces {
 
 /* your private config goes here */
 pub fn make(state: &mut state::State){
-    set_workspaces!(state, ["一", "二", "三", "四"]);
+    set_spaces!(state, ["一", "二", "三", "四"]);
 }

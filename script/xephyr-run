@@ -2,4 +2,5 @@
 
 export XROAGWEM_PATH=target/debug/xroagwem
 
-Xephyr :1 & sleep 1 ; DISPLAY=:1 $XROAGWEM_PATH
+Xephyr -screen 1920x1080 :1 
+# & sleep 1 ; DISPLAY=:1 $XROAGWEM_PATH

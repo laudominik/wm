@@ -3,6 +3,9 @@ use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr::null;
+
+use crate::wm;
+use crate::style;
 use crate::state::{Cursor, NetAtoms, WmAtoms};
 
 use super::error;
@@ -62,7 +65,7 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             },
             dpy: dpy,
             workspaces: Vec::new(),
-            active_workspace: 0
+            active_workspace: 0,
         };
     }
 
