@@ -1,7 +1,11 @@
+use std::process::Command;
+
 use crate::state::{self, Keybinding};
 use crate::style::{ColorScheme, ColorSchemes, Style};
 use crate::wm;
-
+use std::time::Duration;
+use std::thread::sleep;
+use std::thread;
 
 pub static STYLE: Style = Style {
     colors: ColorSchemes {
@@ -39,6 +43,16 @@ macro_rules! set_keybinding {
     }
 }
 
+macro_rules! spawn_with_shell {
+    ($command:expr, [ $($arg:expr),* ]) => {{
+            Command::new($command)
+            .env("DISPLAY", ":1")
+            $(    
+                .arg($arg)
+            )*.output().expect("Failed to execute command")
+    }};
+}
+
 /* your private config goes here */
 pub fn make(state: &mut state::State){
     set_spaces!(state, ["一", "二", "三", "四"]);
@@ -46,7 +60,9 @@ pub fn make(state: &mut state::State){
         state,
         callback: || {}, 
         keys:[Mod1Mask, XK_p]
-    )
+    );
+
+    spawn_with_shell!("nitrogen", ["--restore"]);
 }
 
 impl state::State<'_> {
