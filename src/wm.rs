@@ -26,6 +26,31 @@ impl state::State<'_> {
         self.active.window = window;
     }
 
+    pub fn focus_next(&mut self){
+        let len =  active_workspace_wins!(self).len();
+        if let Some(ix) = active_workspace_wins!(self).iter().position(|w| *w == self.active.window) {
+            self.active.window = active_workspace_wins!(self)[(ix+1)%len];
+        } else {
+            self.active.window = active_workspace_wins!(self)[0];
+        }
+
+        self.retile();
+    }
+
+    pub fn focus_previous(&mut self){
+        let len =  active_workspace_wins!(self).len();
+        if let Some(ix) = active_workspace_wins!(self).iter().position(|w| *w == self.active.window) {
+            let mut previous: usize = 0;
+            if ix == 0 { previous = len - 1;} 
+            else {previous = ix - 1};
+            self.active.window = active_workspace_wins!(self)[previous];
+        } else {
+            self.active.window = active_workspace_wins!(self)[0];
+        }
+
+        self.retile();
+    }
+
     pub fn cascade_autotiling(&mut self){
         let useless_gap: u32 = STYLE.useless_gap;
         let border = STYLE.border_thickness;

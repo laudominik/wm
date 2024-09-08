@@ -1,7 +1,7 @@
 use std::process::Command;
 use std::sync::Arc;
 
-use x11::keysym::{XK_Return, XK_space};
+use x11::keysym::{XK_Return, XK_j, XK_k, XK_space};
 use x11::xlib::{Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask};
 
 use crate::state::{self, Keybinding, KEYBINDINGS};
@@ -87,6 +87,18 @@ pub fn make(state: &mut state::State){
         modkey: MODKEY,
         callback: |_| {spawn_with_shell!("alacritty");}, 
         key: XK_Return
+    );
+
+    set_keybinding!(
+        modkey: MODKEY,
+        callback: |state| {state.focus_next();},
+        key: XK_j
+    );
+
+    set_keybinding!(
+        modkey: MODKEY,
+        callback: |state| {state.focus_previous();},
+        key: XK_k
     );
 
     spawn_with_shell!("nitrogen", ["--restore"]);
