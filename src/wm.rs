@@ -1,4 +1,4 @@
-use x11::xlib::{CWBorderWidth, CurrentTime, False, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XMapWindow, XMoveResizeWindow, XSetInputFocus, XSetWindowBorder, XSync, XWindowChanges};
+use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowChanges};
 use std::{mem, process::exit};
 
 use crate::{config::STYLE, state};
@@ -28,10 +28,12 @@ impl state::State<'_> {
 
     pub fn focus_next(&mut self){
         let len =  active_workspace_wins!(self).len();
+        if len == 0 { return; }
+
         if let Some(ix) = active_workspace_wins!(self).iter().position(|w| *w == self.active.window) {
             self.active.window = active_workspace_wins!(self)[(ix+1)%len];
         } else {
-            self.active.window = active_workspace_wins!(self)[0];
+            self.active.window = active_workspace_wins!(self)[len - 1];
         }
 
         self.retile();
@@ -39,6 +41,8 @@ impl state::State<'_> {
 
     pub fn focus_previous(&mut self){
         let len =  active_workspace_wins!(self).len();
+        if len == 0 { return; }
+
         if let Some(ix) = active_workspace_wins!(self).iter().position(|w| *w == self.active.window) {
             let mut previous: usize = 0;
             if ix == 0 { previous = len - 1;} 
@@ -51,6 +55,14 @@ impl state::State<'_> {
         self.retile();
     }
 
+    pub fn close_active(&mut self){
+        if active_workspace_wins!(self).is_empty() { return;}
+
+        unsafe {    
+            XDestroyWindow(self.dpy, self.active.window);
+        }
+    }
+
     pub fn cascade_autotiling(&mut self){
         let useless_gap: u32 = STYLE.useless_gap;
         let border = STYLE.border_thickness;
@@ -58,7 +70,7 @@ impl state::State<'_> {
         let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
         
         let maybe_latest_window: Option<&u64> = active_workspace_wins!(self).last();
-        if(maybe_latest_window.is_none()) { return };
+        if maybe_latest_window.is_none() { return };
         
         let latest_window = maybe_latest_window.unwrap();
         if self.workspaces[self.active.workspace].windows.len() == 1 {

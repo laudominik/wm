@@ -18,6 +18,7 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
     match ty {
         xlib::MapRequest => callback!(state, map_request, ev),
         xlib::KeyPress => callback!(state, key, ev),
+        xlib::UnmapNotify => callback!(state, unmap, ev),
         _ => println!("Unhandled event")
     }
 }
@@ -32,6 +33,18 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     state.retile();
     unsafe {XSync(state.dpy, False)};
 }   
+
+fn unmap(state: &mut State, ev: xlib::XUnmapEvent){
+
+    active_workspace_wins!(state).retain(|x| *x != ev.window);
+    
+    if ev.window == state.active.window {
+        state.focus_next();
+    }
+
+    state.retile();
+    println!("Window destroyed!");
+}
 
 fn key(state: &mut State, ev: xlib::XKeyEvent) {
     let keysym = unsafe { XKeycodeToKeysym(state.dpy, ev.keycode as u8, 0) } as u32;
