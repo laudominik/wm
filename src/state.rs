@@ -1,4 +1,4 @@
-use x11::xlib;
+use x11::xlib::{self, Window};
 
 use crate::{style::{ColorSchemesXft}, wm};
 
@@ -31,14 +31,17 @@ pub struct Cursor_<T> {
 pub struct State<'a> {
     pub screen: i32,
     pub root: xlib::Window,
-    pub wmatom: WmAtoms,
-    pub netatom: NetAtoms,
     pub cursor: Cursor,
     pub dpy: &'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
-    pub active_workspace: usize,
     pub colors : ColorSchemesXft,
-    pub keybindings: Vec<Keybinding>
+    pub keybindings: Vec<Keybinding>,
+    pub active: Active
+}
+
+pub struct Active {
+    pub workspace: usize,
+    pub window: Window
 }
 
 pub struct Keybinding {}

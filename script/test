@@ -1,5 +1,8 @@
 #!/bin/sh
-export TESTAPP=snes9x-gtk
+export TESTAPP0=alacritty
+export TESTAPP1=snes9x-gtk
 export DISPLAY=":1"
 
-$TESTAPP
+$TESTAPP0 &
+$TESTAPP0 &
+$TESTAPP1

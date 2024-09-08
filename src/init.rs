@@ -10,7 +10,7 @@ use std::mem;
 use crate::config::STYLE;
 use crate::wm;
 use crate::style::{self};
-use crate::state::{Cursor, NetAtoms, WmAtoms};
+use crate::state::{Active, Cursor, NetAtoms, WmAtoms};
 
 use super::error;
 use super::state;
@@ -23,13 +23,6 @@ pub fn check_other_wms(dpy: &mut xlib::Display){
         xlib::XSetErrorHandler(Some(error::xerror));
         XSync(dpy, False);
     }
-}
-
-macro_rules! init_atom {
-    ($dpy:expr, $name:expr) => {{
-        let c_name = CString::new($name).unwrap();
-        unsafe {xlib::XInternAtom($dpy, c_name.as_ptr(), xlib::False)}
-    }};
 }
 
 macro_rules! init_cursor {
@@ -47,21 +40,6 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
         state = state::State {
             screen: screen,
             root: root,
-            wmatom: WmAtoms { 
-                protocols: init_atom!(dpy, "WM_PROTOCOLS"), 
-                delete: init_atom!(dpy, "WM_DELETE_WINDOW"), 
-                state: init_atom!(dpy, "WM_STATE"), 
-                take_focus: init_atom!(dpy, "WM_TAKE_FOCUS") 
-            },
-            netatom: NetAtoms { 
-                active_window: init_atom!(dpy, "ACTIVE_WINDOW"), 
-                supported: init_atom!(dpy, "_NET_SUPPORTED"), 
-                state: init_atom!(dpy, "_NET_WM_STATE"),
-                check: init_atom!(dpy, "_NET_SUPPORTING_WM_CHECK"),
-                fullscreen: init_atom!(dpy, "FULLSCREEN"),
-                wtype: init_atom!(dpy, "_NET_WINDOW_TYPE")
-            },
-    
             cursor: Cursor {
                 normal: init_cursor!(dpy, 68 /* XC left ptr */),
                 resize: init_cursor!(dpy, 120 /* XC sizing */),
@@ -69,9 +47,12 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             },
             dpy: dpy,
             workspaces: Vec::new(),
-            active_workspace: 0,
             colors: unsafe { mem::zeroed() },
-            keybindings: Vec::new()
+            keybindings: Vec::new(),
+            active: Active {
+                workspace: 0,
+                window: root
+            }
         };
     }
     

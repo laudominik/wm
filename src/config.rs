@@ -10,14 +10,14 @@ use std::thread;
 pub static STYLE: Style = Style {
     colors: ColorSchemes {
        normal:  ColorScheme {
-            fg: "#222",
-            bg: "#222",
-            border: "#ff0000"
+            fg: "#024442",
+            bg: "#ffffff",
+            border: "#8b9458"
        },
        selected: ColorScheme {
-            fg: "#222",
-            bg: "#222",
-            border: "#222"
+            fg: "#ffff00",
+            bg: "#ffffff",
+            border: "#ffff00"
        }
     },
     border_thickness: 3,

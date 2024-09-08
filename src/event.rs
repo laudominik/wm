@@ -2,7 +2,7 @@ use std::mem;
 
 use x11::xlib::{self, CWBorderWidth, False, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
-use crate::{state::State, config::STYLE, wm::_Tile};
+use crate::{active_workspace_wins, config::STYLE, state::State, wm::_Tile};
 
 
 macro_rules! callback {
@@ -25,7 +25,8 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
     if( unsafe { XGetWindowAttributes(state.dpy, ev.window, &mut wa) } == 0) { return };
 
-    state.workspaces[state.active_workspace].windows.push(ev.window);
+    state.focus(ev.window);
+    active_workspace_wins!(state).push(ev.window);
     state.retile();
     unsafe {XSync(state.dpy, False)};
 }   
