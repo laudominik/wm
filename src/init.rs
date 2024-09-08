@@ -1,5 +1,5 @@
 use x11::xft::{XftColor, XftColorAllocName};
-use x11::xlib::{CWCursor, CWEventMask, PropModeReplace, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
+use x11::xlib::{CWCursor, CWEventMask, GrabModeAsync, PropModeReplace, True, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XGrabKey, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
 use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow, XSync};
 use x11::xrender::XRenderColor;
 use std::ffi::CStr;
@@ -10,7 +10,7 @@ use std::mem;
 use crate::config::STYLE;
 use crate::wm;
 use crate::style::{self};
-use crate::state::{Active, Cursor, NetAtoms, WmAtoms};
+use crate::state::{Active, Cursor, State};
 
 use super::error;
 use super::state;
@@ -76,7 +76,9 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
                         xlib::EnterWindowMask | 
                         xlib::LeaveWindowMask | 
                         xlib::StructureNotifyMask | 
-                        xlib::PropertyChangeMask,
+                        xlib::PropertyChangeMask | 
+                        xlib::KeyPressMask | 
+                        xlib::KeyReleaseMask,
             do_not_propagate_mask: 0,
             override_redirect: 0,
             colormap: xlib::CopyFromParent as u64,
@@ -85,4 +87,18 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
     }
 
     state
+}
+
+pub fn setup_keybindings(state: &mut State){
+    for binding in state.keybindings.iter() {
+        unsafe {
+            let keycode = xlib::XKeysymToKeycode(state.dpy, binding.key as u64);
+
+            XGrabKey(
+            state.dpy, keycode as i32, 
+            binding.mdky, state.root, 
+            True, GrabModeAsync, 
+            GrabModeAsync);
+        }
+    }
 }

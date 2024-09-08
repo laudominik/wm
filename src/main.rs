@@ -26,6 +26,7 @@ pub fn main() {
             init::check_other_wms(dpy);
             let mut state = init::setup(dpy);
             config::make(&mut state);
+            init::setup_keybindings(&mut state);
             loop_poll_events(&mut state);
         }
     }    

@@ -82,7 +82,7 @@ impl WindowExt for Window {
                 rect.0, rect.1,
                 rect.2, rect.3);
             XMapWindow(state.dpy, self);
-            if self == state.active.window { XSetInputFocus(state.dpy, self, RevertToNone, CurrentTime); }
+            if self == state.active.window { XSetInputFocus(state.dpy, self, RevertToPointerRoot, CurrentTime); }
         }
     }
 }
