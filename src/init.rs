@@ -7,10 +7,10 @@ use std::ffi::CString;
 use std::ptr::null;
 use std::mem;
 
-use crate::config::STYLE;
+use crate::config::{STYLE};
 use crate::wm;
 use crate::style::{self};
-use crate::state::{Active, Cursor, State};
+use crate::state::{Active, Cursor, State, KEYBINDINGS};
 
 use super::error;
 use super::state;
@@ -48,7 +48,6 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             dpy: dpy,
             workspaces: Vec::new(),
             colors: unsafe { mem::zeroed() },
-            keybindings: Vec::new(),
             active: Active {
                 workspace: 0,
                 window: root
@@ -90,7 +89,7 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
 }
 
 pub fn setup_keybindings(state: &mut State){
-    for binding in state.keybindings.iter() {
+    for binding in unsafe { KEYBINDINGS.iter() } {
         unsafe {
             let keycode = xlib::XKeysymToKeycode(state.dpy, binding.key as u64);
 

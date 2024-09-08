@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use x11::xlib::{self, Window};
 
 use crate::{style::{ColorSchemesXft}, wm};
@@ -17,7 +19,6 @@ pub struct State<'a> {
     pub dpy: &'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
     pub colors : ColorSchemesXft,
-    pub keybindings: Vec<Keybinding>,
     pub active: Active
 }
 
@@ -26,8 +27,10 @@ pub struct Active {
     pub window: Window
 }
 
+pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
+
 pub struct Keybinding {
     pub mdky: u32,
     pub key: u32,
-    pub callback: Box<dyn Fn()>
+    pub callback: Arc<dyn Fn(&mut State) + Send + Sync>
 }

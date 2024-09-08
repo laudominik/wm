@@ -3,7 +3,7 @@ use std::error::Error;
 
 use x11::xlib::{self, CWBorderWidth, False, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
-use crate::{active_workspace_wins, config::STYLE, state::State, wm::_Tile};
+use crate::{active_workspace_wins, config::STYLE, state::{State, KEYBINDINGS}, wm::_Tile};
 
 
 macro_rules! callback {
@@ -35,10 +35,9 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
 
 fn key(state: &mut State, ev: xlib::XKeyEvent) {
     let keysym = unsafe { XKeycodeToKeysym(state.dpy, ev.keycode as u8, 0) } as u32;
-
-    if let Some(binding) = state.keybindings.iter_mut().find(
+    if let Some(binding) = unsafe { KEYBINDINGS.iter() }.find(
         |x| x.key == keysym && x.mdky ==  ev.state
     ) {
-        (binding.callback)();
+        (binding.callback)(state);
     }
 }
