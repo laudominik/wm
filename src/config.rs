@@ -1,11 +1,13 @@
+use std::collections::HashSet;
 use std::process::Command;
 use std::sync::Arc;
 
-use x11::keysym::{XK_Return, XK_c, XK_h, XK_j, XK_k, XK_l, XK_space, XK_r};
-use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, XDisplayHeight, XDisplayWidth};
+use x11::keysym::{XK_Return, XK_c, XK_h, XK_j, XK_k, XK_l, XK_space, XK_r, XK_f};
+use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth};
 
-use crate::state::{self, Keybinding, KEYBINDINGS};
+use crate::state::{self, Keybinding, State, KEYBINDINGS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
+use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, wm};
 
 macro_rules! set_spaces {
@@ -53,6 +55,19 @@ macro_rules! spawn_with_shell {
     }
 }
 
+macro_rules! toggle_active_window_prop {
+    ($state: expr, $set: ident) => {
+        if let Some(custom) = &mut active_workspace!($state).custom {
+            if let Some(_)  = custom.$set.iter().position(|x| *x == $state.active.window) {
+                custom.$set.remove(&$state.active.window);
+            } else {
+                custom.$set.insert($state.active.window);
+            }
+            $state.retile();
+        }
+    };
+}
+
 pub static STYLE: Style = Style {
     colors: ColorSchemes {
        normal:  ColorScheme {
@@ -97,11 +112,17 @@ pub fn make(state: &mut state::State){
             callback: |state| {state.focus_next();},
             key: XK_j
         );
-    
+
         set_keybinding!(
             modkey: MODKEY,
             callback: |state| {state.focus_previous();},
             key: XK_k
+        );
+
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |state| {toggle_active_window_prop!(state, fullscreen_windows);},
+            key: XK_f
         );
 
         set_keybinding!(
@@ -126,7 +147,8 @@ pub fn make(state: &mut state::State){
             modkey: MODKEY_CTRL,
             callback: |state| {/* make active window floating */},
             key: XK_space
-        )
+        );
+   
     }
 
     /* startup apps */
@@ -143,20 +165,41 @@ pub fn make(state: &mut state::State){
 
         for space in state.workspaces.iter_mut() {
             space.custom = Some(CustomData {
-                separator: screen_width/2
+                separator: screen_width/2,
+                fullscreen_windows: HashSet::new(),
+                floating_windows: HashSet::new()
             });
         }
     }
 }
 
 pub struct CustomData {
-    pub separator: u32 /* used by cascade_autotiling */
+    pub separator: u32 /* used by cascade_autotiling */,
+    pub fullscreen_windows: HashSet<Window>,
+    pub floating_windows: HashSet<Window>
 }
 
 impl state::State<'_> {
     pub fn retile(&mut self){
+        /* configurable grouping logic */
+        let mut tiled_windows: Vec<Window> = Vec::new();
+        let mut fullscreen_windows: Vec<Window> = Vec::new();
+
+        if let Some(custom) = &mut active_workspace!(self).custom {
+            for window in active_workspace!(self).windows.iter(){
+                if active_workspace!(self).custom.as_ref().unwrap().fullscreen_windows.contains(window) {
+                    fullscreen_windows.push(*window);
+                    continue;
+                }
+                tiled_windows.push(*window);
+            }
+        } else {
+            tiled_windows =  active_workspace_wins!(self).clone();
+        }   
+
         /* configurable tiling logic */
-        self.cascade_autotiling();
+        self.cascade_autotiling(tiled_windows);     
+        draw_fullscreen_windows(self, fullscreen_windows);
     }
 }
 
@@ -164,5 +207,14 @@ fn separator_modify(state: &mut state::State, modifier: i32) {
     if let Some(custom ) = &mut active_workspace!(state).custom {
         custom.separator = (custom.separator as i32 + modifier).clamp(10, 1760) as u32;
         state.retile();
+    }
+}
+
+fn draw_fullscreen_windows(state: &mut State, windows: Vec<Window>){
+    let screen_width: u32 = unsafe{XDisplayWidth(state.dpy, state.screen) as u32};
+    let screen_height = unsafe{XDisplayHeight(state.dpy, state.screen) as u32};
+
+    for window in windows {
+        window.do_map(state, (0, 0, screen_width, screen_height));
     }
 }

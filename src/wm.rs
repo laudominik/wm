@@ -71,17 +71,17 @@ impl state::State<'_> {
         }
     }
 
-    pub fn cascade_autotiling(&mut self){
+    pub fn cascade_autotiling(&mut self, windows: Vec<Window>){
         let useless_gap: u32 = STYLE.useless_gap;
         let border = STYLE.border_thickness;
-        let screen_width = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
+        let screen_width: u32 = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
         let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
         
-        let maybe_latest_window: Option<&u64> = active_workspace_wins!(self).last();
+        let maybe_latest_window: Option<&u64> = windows.last();
         if maybe_latest_window.is_none() { return };
         
         let latest_window = maybe_latest_window.unwrap();
-        if self.workspaces[self.active.workspace].windows.len() == 1 {
+        if windows.len() == 1 {
             latest_window.do_map(self, (
                 useless_gap as i32, useless_gap as i32, 
                 screen_width - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
@@ -99,13 +99,13 @@ impl state::State<'_> {
             middle - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
         ));
 
-        let len_rest = active_workspace_wins!(self).len() - 1;
+        let len_rest = windows.len() - 1;
         let increment = screen_height / len_rest as u32;
 
         for i in 0..len_rest {
             let start_y = increment * i as u32 + useless_gap;
 
-            active_workspace_wins!(self)[i].do_map(self, (
+            windows[i].do_map(self, (
                 (useless_gap / 2 + middle) as i32, start_y as i32, 
                 (screen_width - middle) - useless_gap * 2 - border * 2, increment - useless_gap * 2 - border * 2
             ));
@@ -113,7 +113,7 @@ impl state::State<'_> {
     }
 }
 
-trait WindowExt {
+pub trait WindowExt {
     fn do_map(self, state: &mut state::State, rect: (i32, i32, u32, u32));
 }
 
