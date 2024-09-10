@@ -1,4 +1,4 @@
-use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XGetWindowAttributes, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
+use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XGetWindowAttributes, XLowerWindow, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 use std::{mem, process::exit};
 
 use crate::{config::{CustomData, STYLE}, state};
@@ -72,6 +72,11 @@ impl state::State<'_> {
     }
 
     pub fn cascade_autotiling(&mut self, windows: Vec<Window>){
+
+        for window in windows.iter() {
+            unsafe { XLowerWindow(self.dpy, *window) };       
+        }
+
         let useless_gap: u32 = STYLE.useless_gap;
         let border = STYLE.border_thickness;
         let screen_width: u32 = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};

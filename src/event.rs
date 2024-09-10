@@ -1,8 +1,9 @@
-use std::mem;
+use std::{mem, os::linux::raw::stat};
 use std::error::Error;
 
-use x11::xlib::{self, CWBorderWidth, False, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
+use x11::xlib::{self, CWBorderWidth, EnterWindowMask, False, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
+use crate::active_workspace;
 use crate::{active_workspace_wins, config::STYLE, state::{State, KEYBINDINGS}, wm::_Tile};
 
 
@@ -19,6 +20,7 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
         xlib::MapRequest => callback!(state, map_request, ev),
         xlib::KeyPress => callback!(state, key, ev),
         xlib::UnmapNotify => callback!(state, unmap, ev),
+        xlib::EnterNotify => callback!(state, crossing, ev),
         _ => println!("Unhandled event")
     }
 }
@@ -27,6 +29,8 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     println!("Map request");
     let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
     if( unsafe { XGetWindowAttributes(state.dpy, ev.window, &mut wa) } == 0) { return };
+
+    unsafe { XSelectInput(state.dpy, ev.window, EnterWindowMask) };
 
     state.focus(ev.window);
     active_workspace_wins!(state).push(ev.window);
@@ -53,4 +57,11 @@ fn key(state: &mut State, ev: xlib::XKeyEvent) {
     ) {
         (binding.callback)(state);
     }
+}
+
+fn crossing(state: &mut State, ev: xlib::XCrossingEvent){
+    if ev.window == state.root { return };
+
+    state.active.window = ev.window;
+    state.retile();
 }

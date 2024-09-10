@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::mem;
 
 use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w};
-use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XWindowAttributes};
+use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XRaiseWindow, XWindowAttributes};
 
 use crate::state::{self, Keybinding, State, KEYBINDINGS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
@@ -194,8 +194,8 @@ impl state::State<'_> {
 
         /* configurable tiling logic */
         self.cascade_autotiling(tiled_windows);     
-        self.draw_floating_windows(floating_windows);
-        self.draw_fullscreen_windows(fullscreen_windows);
+        self.draw_floating_windows(&floating_windows);
+        self.draw_fullscreen_windows(&fullscreen_windows);
     }
 
     fn separator_modify(&mut self, modifier: i32) {
@@ -205,19 +205,21 @@ impl state::State<'_> {
         }
     }
     
-    fn draw_fullscreen_windows(&mut self, windows: Vec<Window>){
+    fn draw_fullscreen_windows(&mut self, windows: &Vec<Window>){
         let screen_width: u32 = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
         let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
     
         for window in windows {
+            unsafe { XRaiseWindow(self.dpy, *window) };       
             window.do_map(self, (0, 0, screen_width, screen_height));
         }
     }
 
-    fn draw_floating_windows(&mut self, windows: Vec<Window>){
-        for window in windows {
+    fn draw_floating_windows(&mut self, windows: &Vec<Window>){
+        for window in windows.iter() {
             let rect = window.get_rect(self);
-            window.do_map(self,  rect);           
+            unsafe { XRaiseWindow(self.dpy, *window) };       
+            window.do_map(self,  rect);    
         }
     }
 

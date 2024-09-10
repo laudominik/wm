@@ -71,7 +71,8 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             save_under: 0,
             event_mask: xlib::SubstructureRedirectMask | 
                         xlib::SubstructureNotifyMask | 
-                        xlib::PointerMotionHintMask | 
+                        xlib::ButtonPressMask |
+                        xlib::PointerMotionMask | 
                         xlib::EnterWindowMask | 
                         xlib::LeaveWindowMask | 
                         xlib::StructureNotifyMask | 
