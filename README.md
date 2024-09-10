@@ -3,7 +3,7 @@ Window manager written in Rust. Heavily inspired by DWM. The goal is to support 
 * auto cascade tiling ✔
 * fullscreen window
 * floating window
-* wallpaper
+* wallpaper ✔
 * spawning some scripts with shell on startup ✔
 * top bar
 * keybindings ✔

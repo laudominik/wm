@@ -1,19 +1,20 @@
 use std::process::Command;
 use std::sync::Arc;
 
-use x11::keysym::{XK_Return, XK_j, XK_k, XK_space, XK_c};
-use x11::xlib::{Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask};
+use x11::keysym::{XK_Return, XK_c, XK_h, XK_j, XK_k, XK_l, XK_space};
+use x11::xlib::{Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, XDisplayHeight, XDisplayWidth};
 
 use crate::state::{self, Keybinding, KEYBINDINGS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
-use crate::wm;
+use crate::{active_workspace, active_workspace_wins, wm};
 
 macro_rules! set_spaces {
     ($state:expr, [ $($tag:expr),* ]) => {{
         $(    
             $state.workspaces.push(wm::Space {
                 tag: $tag,
-                windows: Vec::new()
+                windows: Vec::new(),
+                custom: None
             });
         )*
     }};
@@ -75,39 +76,80 @@ const MODKEY_SHIFT: u32 = MODKEY | ShiftMask;
 
 /* your private config goes here */
 pub fn make(state: &mut state::State){
-    set_spaces!(state, ["一", "二", "三", "四"]);
 
-    set_keybinding!(
-        modkey: MODKEY,
-        callback: |_| {spawn_with_shell!("alacritty");}, 
-        key: XK_Return
-    );
+    /* keybindings */
+    {
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |_| {spawn_with_shell!("alacritty");}, 
+            key: XK_Return
+        );
+    
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |state| {state.focus_next();},
+            key: XK_j
+        );
+    
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |state| {state.focus_previous();},
+            key: XK_k
+        );
 
-    set_keybinding!(
-        modkey: MODKEY,
-        callback: |state| {state.focus_next();},
-        key: XK_j
-    );
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |state| {separator_modify(state, 10)},
+            key: XK_l
+        );
 
-    set_keybinding!(
-        modkey: MODKEY,
-        callback: |state| {state.focus_previous();},
-        key: XK_k
-    );
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |state| {separator_modify(state, -10)},
+            key: XK_h
+        );
+    
+        set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.close_active();},
+            key: XK_c
+        );
+    }
 
-    set_keybinding!(
-        modkey: MODKEY_SHIFT,
-        callback: |state| {state.close_active();},
-        key: XK_c
-    );
+    /* startup apps */
+    {
+        spawn_with_shell!("nitrogen", ["--restore"]);
+        spawn_with_shell!("picom");
 
-    spawn_with_shell!("nitrogen", ["--restore"]);
-    spawn_with_shell!("picom");
+    }
+
+    /* default workspaces config */
+    {
+        set_spaces!(state, ["一", "二", "三", "四"]);
+        let screen_width = unsafe{XDisplayWidth(state.dpy, state.screen) as u32};
+
+        for space in state.workspaces.iter_mut() {
+            space.custom = Some(CustomData {
+                separator: screen_width/2
+            });
+        }
+    }
+}
+
+pub struct CustomData {
+    pub separator: u32 /* used by cascade_autotiling */
 }
 
 impl state::State<'_> {
     pub fn retile(&mut self){
         /* configurable tiling logic */
         self.cascade_autotiling();
+    }
+}
+
+fn separator_modify(state: &mut state::State, modifier: i32) {
+    if let Some(custom ) = &mut active_workspace!(state).custom {
+        custom.separator = (custom.separator as i32 + modifier).clamp(10, 1760) as u32;
+        state.retile();
     }
 }

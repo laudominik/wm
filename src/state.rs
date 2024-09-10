@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use x11::xlib::{self, Window};
 
-use crate::{style::{ColorSchemesXft}, wm};
+use crate::{config::CustomData, style::ColorSchemesXft, wm};
 
 pub type Cursor = Cursor_<xlib::Cursor>;
 
@@ -19,12 +19,12 @@ pub struct State<'a> {
     pub dpy: &'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
     pub colors : ColorSchemesXft,
-    pub active: Active
+    pub active: Active,
 }
 
 pub struct Active {
     pub workspace: usize,
-    pub window: Window
+    pub window: Window,
 }
 
 pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();

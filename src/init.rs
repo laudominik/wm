@@ -7,7 +7,7 @@ use std::ffi::CString;
 use std::ptr::null;
 use std::mem;
 
-use crate::config::{STYLE};
+use crate::config::{CustomData, STYLE};
 use crate::wm;
 use crate::style::{self};
 use crate::state::{Active, Cursor, State, KEYBINDINGS};

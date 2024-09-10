@@ -1,16 +1,24 @@
 use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowChanges};
 use std::{mem, process::exit};
 
-use crate::{config::STYLE, state};
+use crate::{config::{CustomData, STYLE}, state};
 
 pub struct Space<'a> {
     pub tag: &'a str,
-    pub windows: Vec<Window>
+    pub windows: Vec<Window>,
+    pub custom: Option<CustomData> /* custom config for active workspace*/
 }
 
 pub struct _Tile {
     pub coords: (i32, i32),
     pub size: (u32, u32)
+}
+
+#[macro_export]
+macro_rules! active_workspace {
+    ($state: expr) => {
+        $state.workspaces[$state.active.workspace]
+    };
 }
 
 #[macro_export]
@@ -80,10 +88,15 @@ impl state::State<'_> {
             ));
             return;
         } 
+
+        let mut middle = screen_width / 2;
+        if let Some(custom) = &active_workspace!(self).custom {
+            middle = custom.separator;
+        }
         
         latest_window.do_map(self, (
             useless_gap as i32, useless_gap as i32,
-            screen_width / 2 - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
+            middle - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
         ));
 
         let len_rest = active_workspace_wins!(self).len() - 1;
@@ -93,8 +106,8 @@ impl state::State<'_> {
             let start_y = increment * i as u32 + useless_gap;
 
             active_workspace_wins!(self)[i].do_map(self, (
-                (useless_gap / 2 + screen_width / 2) as i32, start_y as i32, 
-                screen_width / 2 - useless_gap * 2 - border * 2, increment - useless_gap * 2 - border * 2
+                (useless_gap / 2 + middle) as i32, start_y as i32, 
+                (screen_width - middle) - useless_gap * 2 - border * 2, increment - useless_gap * 2 - border * 2
             ));
         }
     }
