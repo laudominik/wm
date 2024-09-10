@@ -1,59 +1,16 @@
 use std::collections::HashSet;
+use std::f32::INFINITY;
 use std::process::Command;
 use std::sync::Arc;
+use std::mem;
 
-use x11::keysym::{XK_Return, XK_c, XK_h, XK_j, XK_k, XK_l, XK_space, XK_r, XK_f};
-use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth};
+use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w};
+use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XWindowAttributes};
 
 use crate::state::{self, Keybinding, State, KEYBINDINGS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
 use crate::wm::WindowExt;
-use crate::{active_workspace, active_workspace_wins, wm};
-
-macro_rules! set_spaces {
-    ($state:expr, [ $($tag:expr),* ]) => {{
-        $(    
-            $state.workspaces.push(wm::Space {
-                tag: $tag,
-                windows: Vec::new(),
-                custom: None
-            });
-        )*
-    }};
-}
-
-
-macro_rules! set_keybinding {
-    (modkey: $mdky: expr, callback: $cb:expr, key: $key:expr) => {
-        {
-            unsafe {
-                KEYBINDINGS.push(Keybinding {
-                    mdky: $mdky,
-                    key: $key, 
-                    callback: Arc::new($cb)
-                });
-            }
-        }
-    }
-}
-
-macro_rules! spawn_with_shell {
-    ($command:expr, [ $($arg:expr),* ]) => {{
-            Command::new($command)
-            .env("DISPLAY", ":1")
-            $(    
-                .arg($arg)
-            )*.spawn().expect("Failed to execute command")
-    }};
-
-    ($command:expr) => {
-        {
-            Command::new($command)
-            .env("DISPLAY", ":1")
-            .spawn().expect("Failed to execute command");
-        }
-    }
-}
+use crate::{active_workspace, active_workspace_wins, set_keybinding, set_spaces, spawn_with_shell, wm};
 
 macro_rules! toggle_active_window_prop {
     ($state: expr, $set: ident) => {
@@ -106,7 +63,6 @@ pub fn make(state: &mut state::State){
             key: XK_r
         );
 
-
         set_keybinding!(
             modkey: MODKEY,
             callback: |state| {state.focus_next();},
@@ -127,13 +83,13 @@ pub fn make(state: &mut state::State){
 
         set_keybinding!(
             modkey: MODKEY,
-            callback: |state| {separator_modify(state, 10)},
+            callback: |state| {state.separator_modify(40)},
             key: XK_l
         );
 
         set_keybinding!(
             modkey: MODKEY,
-            callback: |state| {separator_modify(state, -10)},
+            callback: |state| {state.separator_modify(-40)},
             key: XK_h
         );
     
@@ -144,8 +100,44 @@ pub fn make(state: &mut state::State){
         );
 
         set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.active_floating_move(0, 40);},
+            key: XK_Down
+        );
+
+        set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.active_floating_move(0, -40);},
+            key: XK_Up
+        );
+
+        set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.active_floating_move(-40, 0);},
+            key: XK_Left
+        );
+
+        set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.active_floating_move(40, 0);},
+            key: XK_Right
+        );
+
+        set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.active_floating_resize(40, 40);},
+            key: XK_plus
+        );
+        
+        set_keybinding!(
+            modkey: MODKEY_SHIFT,
+            callback: |state| {state.active_floating_resize(-40, -40);},
+            key: XK_minus
+        );
+
+        set_keybinding!(
             modkey: MODKEY_CTRL,
-            callback: |state| {/* make active window floating */},
+            callback: |state| {toggle_active_window_prop!(state, floating_windows);},
             key: XK_space
         );
    
@@ -155,7 +147,6 @@ pub fn make(state: &mut state::State){
     {
         spawn_with_shell!("nitrogen", ["--restore"]);
         spawn_with_shell!("picom");
-
     }
 
     /* default workspaces config */
@@ -184,11 +175,15 @@ impl state::State<'_> {
         /* configurable grouping logic */
         let mut tiled_windows: Vec<Window> = Vec::new();
         let mut fullscreen_windows: Vec<Window> = Vec::new();
+        let mut floating_windows: Vec<Window> = Vec::new();
 
-        if let Some(custom) = &mut active_workspace!(self).custom {
+        if let Some(_) = &mut active_workspace!(self).custom {
             for window in active_workspace!(self).windows.iter(){
                 if active_workspace!(self).custom.as_ref().unwrap().fullscreen_windows.contains(window) {
                     fullscreen_windows.push(*window);
+                    continue;
+                } else if active_workspace!(self).custom.as_ref().unwrap().floating_windows.contains(window) {
+                    floating_windows.push(*window);
                     continue;
                 }
                 tiled_windows.push(*window);
@@ -199,22 +194,52 @@ impl state::State<'_> {
 
         /* configurable tiling logic */
         self.cascade_autotiling(tiled_windows);     
-        draw_fullscreen_windows(self, fullscreen_windows);
+        self.draw_floating_windows(floating_windows);
+        self.draw_fullscreen_windows(fullscreen_windows);
+    }
+
+    fn separator_modify(&mut self, modifier: i32) {
+        if let Some(custom ) = &mut active_workspace!(self).custom {
+            custom.separator = (custom.separator as i32 + modifier).clamp(100, 1760) as u32;
+            self.retile();
+        }
+    }
+    
+    fn draw_fullscreen_windows(&mut self, windows: Vec<Window>){
+        let screen_width: u32 = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
+        let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
+    
+        for window in windows {
+            window.do_map(self, (0, 0, screen_width, screen_height));
+        }
+    }
+
+    fn draw_floating_windows(&mut self, windows: Vec<Window>){
+        for window in windows {
+            let rect = window.get_rect(self);
+            window.do_map(self,  rect);           
+        }
+    }
+
+    fn active_floating_resize(&mut self, dw: i32, dh: i32) {
+        if let Some(custom) = &active_workspace!(self).custom {
+            if !custom.floating_windows.contains(&self.active.window) { return };
+            let mut rect = self.active.window.get_rect(self);
+            rect.2 = (rect.2 as i32 + dw).clamp(100, i32::MAX) as u32;
+            rect.3 = (rect.3 as i32 + dh).clamp(100, i32::MAX) as u32;
+            self.active.window.do_map(self,  rect);
+        }
+        
+    }
+
+    fn active_floating_move(&mut self, dx: i32, dy: i32) {
+        if let Some(custom) = &active_workspace!(self).custom {
+            if !custom.floating_windows.contains(&self.active.window) { return };
+            let mut rect = self.active.window.get_rect(self);
+            rect.0 += dx;
+            rect.1 += dy;
+            self.active.window.do_map(self,  rect);
+        }
     }
 }
 
-fn separator_modify(state: &mut state::State, modifier: i32) {
-    if let Some(custom ) = &mut active_workspace!(state).custom {
-        custom.separator = (custom.separator as i32 + modifier).clamp(10, 1760) as u32;
-        state.retile();
-    }
-}
-
-fn draw_fullscreen_windows(state: &mut State, windows: Vec<Window>){
-    let screen_width: u32 = unsafe{XDisplayWidth(state.dpy, state.screen) as u32};
-    let screen_height = unsafe{XDisplayHeight(state.dpy, state.screen) as u32};
-
-    for window in windows {
-        window.do_map(state, (0, 0, screen_width, screen_height));
-    }
-}

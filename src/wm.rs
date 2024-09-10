@@ -1,4 +1,4 @@
-use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowChanges};
+use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XGetWindowAttributes, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 use std::{mem, process::exit};
 
 use crate::{config::{CustomData, STYLE}, state};
@@ -115,6 +115,7 @@ impl state::State<'_> {
 
 pub trait WindowExt {
     fn do_map(self, state: &mut state::State, rect: (i32, i32, u32, u32));
+    fn get_rect(self, state: &mut state::State) -> (i32, i32, u32, u32);
 }
 
 impl WindowExt for Window {
@@ -134,6 +135,12 @@ impl WindowExt for Window {
             XMapWindow(state.dpy, self);
             if self == state.active.window { XSetInputFocus(state.dpy, self, RevertToPointerRoot, CurrentTime); }
         }
+    }
+
+    fn get_rect(self, state: &mut state::State) -> (i32, i32, u32, u32) {
+        let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
+        if( unsafe { XGetWindowAttributes(state.dpy, self, &mut wa) } == 0) { return (0,0,0,0); };
+        return (wa.x, wa.y, wa.width as u32, wa.height as u32)
     }
 }
 

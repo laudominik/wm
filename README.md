@@ -2,10 +2,11 @@
 Window manager written in Rust. Heavily inspired by DWM. The goal is to support all of the features from awesomewm I use on daily basis and switch to it:
 * auto cascade tiling ✔
 * fullscreen window ✔
-* floating window
+* floating window ✔
 * wallpaper ✔
 * spawning some scripts with shell on startup ✔
 * top bar
+* mouse motions
 * keybindings ✔
 * two screens support
 
