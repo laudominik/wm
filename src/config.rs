@@ -1,8 +1,8 @@
 use std::process::Command;
 use std::sync::Arc;
 
-use x11::keysym::{XK_Return, XK_c, XK_h, XK_j, XK_k, XK_l, XK_space};
-use x11::xlib::{Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, XDisplayHeight, XDisplayWidth};
+use x11::keysym::{XK_Return, XK_c, XK_h, XK_j, XK_k, XK_l, XK_space, XK_r};
+use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, XDisplayHeight, XDisplayWidth};
 
 use crate::state::{self, Keybinding, KEYBINDINGS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
@@ -72,7 +72,7 @@ pub static STYLE: Style = Style {
 
 const MODKEY: u32 = Mod4Mask;
 const MODKEY_SHIFT: u32 = MODKEY | ShiftMask;
-
+const MODKEY_CTRL: u32 = MODKEY | ControlMask;
 
 /* your private config goes here */
 pub fn make(state: &mut state::State){
@@ -84,7 +84,14 @@ pub fn make(state: &mut state::State){
             callback: |_| {spawn_with_shell!("alacritty");}, 
             key: XK_Return
         );
-    
+
+        set_keybinding!(
+            modkey: MODKEY,
+            callback: |_| {spawn_with_shell!("dmenu_run");},
+            key: XK_r
+        );
+
+
         set_keybinding!(
             modkey: MODKEY,
             callback: |state| {state.focus_next();},
@@ -114,6 +121,12 @@ pub fn make(state: &mut state::State){
             callback: |state| {state.close_active();},
             key: XK_c
         );
+
+        set_keybinding!(
+            modkey: MODKEY_CTRL,
+            callback: |state| {/* make active window floating */},
+            key: XK_space
+        )
     }
 
     /* startup apps */
