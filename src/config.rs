@@ -7,10 +7,10 @@ use std::mem;
 use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w};
 use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XRaiseWindow, XWindowAttributes};
 
-use crate::state::{self, Keybinding, State, KEYBINDINGS};
+use crate::state::{self, Keybinding, MouseButton, Mousemotion, State, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
 use crate::wm::WindowExt;
-use crate::{active_workspace, active_workspace_wins, set_keybinding, set_spaces, spawn_with_shell, wm};
+use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
 
 macro_rules! toggle_active_window_prop {
     ($state: expr, $set: ident) => {
@@ -48,7 +48,15 @@ const MODKEY_CTRL: u32 = MODKEY | ControlMask;
 
 /* your private config goes here */
 pub fn make(state: &mut state::State){
-
+    /* mouse motion */
+    {
+        set_mousemotion!(
+            modkey: MODKEY,
+            callback: |state, pt0, pt1| {},
+            mousebutton: MouseButton::RIGHT
+        )
+    }
+    
     /* keybindings */
     {
         set_keybinding!(
@@ -243,5 +251,22 @@ impl state::State<'_> {
             self.active.window.do_map(self,  rect);
         }
     }
+
+
+    /*
+    mousemotion idea:
+        on button click: 
+            1. grab current position, save it as x0, y0
+            2. capture pointer movement events and call the callbacks
+            3. 
+    
+     */
+    // fn rightbutton_move(&mut self, x: i32, y: i32){
+    //     if let Some(custom) = &active_workspace!(self).custom {
+    //         if custom.floating_windows.contains()
+    //     }
+    // }
+
+    // fn rightbutton_move_tiled(&mut self, x: i32, y: i32)
 }
 

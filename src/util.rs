@@ -44,3 +44,18 @@ macro_rules! spawn_with_shell {
         }
     }
 }
+
+#[macro_export]
+macro_rules! set_mousemotion {
+    (modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr) => {
+        {
+            unsafe {
+                MOUSEMOTIONS.push(Mousemotion {
+                    mdky: $mdky, 
+                    callback: Arc::new($cb),
+                    button: $msby
+                });
+            }
+        }
+    };
+}
