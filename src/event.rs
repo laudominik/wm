@@ -78,7 +78,7 @@ fn crossing(state: &mut State, ev: xlib::XCrossingEvent){
 macro_rules! mm_invoke_callback {
     ($state: expr, $ty: ident, $ev: expr) => {
         for mm in unsafe{&MOUSEMOTIONS.$ty} {
-            if mm.button != $ev.button {
+            if mm.button != $ev.button || mm.mdky != $ev.state {
                 continue;
             }
             (mm.callback)($state, ($ev.x, $ev.y));

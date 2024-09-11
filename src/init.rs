@@ -1,5 +1,5 @@
 use x11::xft::{XftColor, XftColorAllocName};
-use x11::xlib::{CWCursor, CWEventMask, GrabModeAsync, PropModeReplace, True, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XGrabKey, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
+use x11::xlib::{Button3, ButtonPressMask, ButtonReleaseMask, CWCursor, CWEventMask, GrabModeAsync, PropModeReplace, True, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XGrabButton, XGrabKey, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
 use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow, XSync};
 use x11::xrender::XRenderColor;
 use std::ffi::CStr;
@@ -10,7 +10,7 @@ use std::mem;
 use crate::config::{CustomData, STYLE};
 use crate::wm;
 use crate::style::{self};
-use crate::state::{Active, Cursor, State, KEYBINDINGS};
+use crate::state::{Active, Cursor, State, KEYBINDINGS, MOUSEMOTIONS};
 
 use super::error;
 use super::state;
@@ -102,4 +102,30 @@ pub fn setup_keybindings(state: &mut State){
             GrabModeAsync);
         }
     }
+}
+
+macro_rules! mousemotion_grab {
+    ($state: expr, $ty: ident) => {
+        for mm in unsafe { MOUSEMOTIONS.$ty.iter() } {
+            unsafe {
+                XGrabButton(
+                    $state.dpy,
+                    mm.button,
+                    mm.mdky,
+                    $state.root,
+                    True,
+                    (ButtonPressMask | ButtonReleaseMask) as u32,
+                    GrabModeAsync,
+                    GrabModeAsync,
+                    0,
+                    0
+                );
+            }
+        }
+    };
+}
+
+pub fn setup_mousemotions(state: &mut State){
+    mousemotion_grab!(state, on_press);
+    mousemotion_grab!(state, on_release);
 }

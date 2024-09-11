@@ -264,13 +264,11 @@ impl state::State<'_> {
         }
     }
 
-
-
-    fn rightclick_grab(){
+    fn rightclick_grab(&mut self, (x, y): (i32, i32)){
 
     }
 
-    fn rightclick_release(){
+    fn rightclick_release(&mut self, (x, y): (i32, i32)){
 
     }
 
