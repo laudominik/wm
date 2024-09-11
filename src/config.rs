@@ -52,16 +52,22 @@ pub fn make(state: &mut state::State){
     {
         set_mousemotion!(
             modkey: MODKEY,
-            callback: |state, pt| {println!("pressed {} {}", pt.0, pt.1)},
+            callback: |state, pt| {state.rightclick_grab(pt)},
             mousebutton: 3,
             onpress
         );
 
         set_mousemotion!(
             modkey: MODKEY,
-            callback: |state, pt| {println!("released {} {}", pt.0, pt.1)},
+            callback: |state, pt| {state.rightclick_release(pt)},
             mousebutton: 3,
             onrelease
+        );
+
+        set_mousemotion!(
+            modkey: MODKEY,
+            callback: |state, pt| {state.rightclick_move(pt)},
+            onmove
         );
     }
     
@@ -175,8 +181,9 @@ pub fn make(state: &mut state::State){
                 separator: screen_width/2,
                 fullscreen_windows: HashSet::new(),
                 floating_windows: HashSet::new(),
-                rightclick_grab_p0: (0,0),
-                rightclick_grab_p1: (0,0)
+                rightclick_grab_origin: (0,0),
+                rightclick_grab_window: 0,
+                rightclick_grabbing: false
             });
         }
     }
@@ -186,8 +193,9 @@ pub struct CustomData {
     pub separator: u32 /* used by cascade_autotiling */,
     pub fullscreen_windows: HashSet<Window>,
     pub floating_windows: HashSet<Window>,
-    pub rightclick_grab_p0: (i32, i32),
-    pub rightclick_grab_p1: (i32, i32)
+    pub rightclick_grab_origin: (i32, i32),
+    pub rightclick_grab_window: Window,
+    pub rightclick_grabbing: bool
 }
 
 impl state::State<'_> {
@@ -264,28 +272,47 @@ impl state::State<'_> {
         }
     }
 
-    fn rightclick_grab(&mut self, (x, y): (i32, i32)){
-
+    fn rightclick_grab(&mut self, pt: (i32, i32)){
+        if let Some(custom) = &mut active_workspace!(self).custom {
+            custom.rightclick_grab_origin = pt;
+            custom.rightclick_grabbing = true;
+        }
     }
 
     fn rightclick_release(&mut self, (x, y): (i32, i32)){
+        if let Some(custom) = &mut active_workspace!(self).custom {
+            custom.rightclick_grab_origin = (0,0);
+            custom.rightclick_grabbing = false;
+        }
+    }
+    
+    fn rightclick_move(&mut self, (x, y): (i32, i32)){
+        if active_workspace!(self).custom.is_none() {
+            return;
+        }
 
+        if !active_workspace!(self).custom.as_ref().unwrap().rightclick_grabbing {
+            return;
+        }
+
+        active_workspace!(self).custom.as_mut().unwrap().separator = x as u32;
+
+        if (x - active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_origin.0).abs() > 50 {
+            self.retile();
+            active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
+        }
+
+        // if let Some(custom) = &mut active_workspace!(self).custom {
+        //     if(custom.rightclick_grabbing) { 
+        //         if x - custom.rightclick_grab_origin.0 > 50 {
+        //             self.retile();
+        //             custom.rightclick_grab_origin.0 = x;
+        //         }
+
+        //         custom.separator = x as u32; 
+        //     }
+        // }
     }
 
-    /*
-    mousemotion idea:
-        on button click: 
-            1. grab current position, save it as x0, y0
-            2. capture pointer movement events and call the callbacks
-            3. 
-    
-     */
-    // fn rightbutton_move(&mut self, x: i32, y: i32){
-    //     if let Some(custom) = &active_workspace!(self).custom {
-    //         if custom.floating_windows.contains()
-    //     }
-    // }
-
-    // fn rightbutton_move_tiled(&mut self, x: i32, y: i32)
 }
 

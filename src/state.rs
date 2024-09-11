@@ -32,12 +32,14 @@ pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
 pub static mut MOUSEMOTIONS: MousemotionsType = MousemotionsType{
     on_press: Vec::new(),
     on_release: Vec::new(),
-    on_move: Vec::new()
+    on_move: Vec::new(), 
+    on_window_enter: Vec::new()
 };
 pub struct MousemotionsType {
     pub on_press: Vec<Mousemotion>,
     pub on_release: Vec<Mousemotion>,
-    pub on_move: Vec<Mousemotion>
+    pub on_move: Vec<Mousemotion>,
+    pub on_window_enter: Vec<Mousemotion>
 }
 
 

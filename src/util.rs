@@ -70,4 +70,16 @@ macro_rules! set_mousemotion {
             }
         }
     };
+
+    (modkey: $mdky: expr, callback: $cb:expr, onmove) => {
+        {
+            unsafe {
+                MOUSEMOTIONS.on_move.push(Mousemotion {
+                    mdky: $mdky, 
+                    callback: Arc::new($cb),
+                    button: 0
+                });
+            }
+        }
+    };
 }

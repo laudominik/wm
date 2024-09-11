@@ -2,7 +2,7 @@ use std::os::raw::c_uint;
 use std::{mem, os::linux::raw::stat};
 use std::error::Error;
 
-use x11::xlib::{self, CWBorderWidth, EnterWindowMask, False, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
+use x11::xlib::{self, CWBorderWidth, EnterWindowMask, False, PointerMotionHintMask, PointerMotionMask, StructureNotifyMask, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
 use crate::active_workspace;
 use crate::state::MOUSEMOTIONS;
@@ -30,6 +30,7 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
         xlib::EnterNotify => callback!(state, crossing, ev),
         xlib::ButtonPress => callback!(state, button_pressed, button, ev),
         xlib::ButtonRelease => callback!(state, button_released, button, ev),
+        xlib::MotionNotify => callback!(state, motion, ev),
         _ => println!("Unhandled event")
     }
 }
@@ -39,7 +40,7 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
     if( unsafe { XGetWindowAttributes(state.dpy, ev.window, &mut wa) } == 0) { return };
 
-    unsafe { XSelectInput(state.dpy, ev.window, EnterWindowMask) };
+    unsafe { XSelectInput(state.dpy, ev.window, EnterWindowMask | PointerMotionMask | StructureNotifyMask) };
 
     state.focus(ev.window);
     active_workspace_wins!(state).push(ev.window);
@@ -78,10 +79,19 @@ fn crossing(state: &mut State, ev: xlib::XCrossingEvent){
 macro_rules! mm_invoke_callback {
     ($state: expr, $ty: ident, $ev: expr) => {
         for mm in unsafe{&MOUSEMOTIONS.$ty} {
-            if mm.button != $ev.button || mm.mdky != $ev.state {
+            if mm.button != $ev.button || (mm.mdky & $ev.state) == 0 {
                 continue;
             }
-            (mm.callback)($state, ($ev.x, $ev.y));
+            (mm.callback)($state, ($ev.x_root, $ev.y_root));
+        }
+    };
+
+    ($state: expr, $ty: ident, $ev: expr, nobutton) => {
+        for mm in unsafe{&MOUSEMOTIONS.$ty} {
+            if (mm.mdky & $ev.state) == 0 {
+                continue;
+            }
+            (mm.callback)($state, ($ev.x_root, $ev.y_root));
         }
     };
 }
@@ -89,3 +99,4 @@ macro_rules! mm_invoke_callback {
 
 fn button_pressed(state: &mut State, ev: xlib::XButtonEvent){ mm_invoke_callback!(state, on_press, ev); }
 fn button_released(state: &mut State, ev: xlib::XButtonEvent){ mm_invoke_callback!(state, on_release, ev); }
+fn motion(state: &mut State, ev: xlib::XMotionEvent){ mm_invoke_callback!(state, on_move, ev, nobutton); }

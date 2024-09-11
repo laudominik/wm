@@ -1,5 +1,5 @@
 use x11::xft::{XftColor, XftColorAllocName};
-use x11::xlib::{Button3, ButtonPressMask, ButtonReleaseMask, CWCursor, CWEventMask, GrabModeAsync, PropModeReplace, True, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XGrabButton, XGrabKey, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
+use x11::xlib::{Button3, ButtonPressMask, ButtonReleaseMask, PointerMotionMask, CWCursor, CWEventMask, GrabModeAsync, PropModeReplace, True, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XGrabButton, XGrabKey, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
 use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow, XSync};
 use x11::xrender::XRenderColor;
 use std::ffi::CStr;
@@ -114,7 +114,7 @@ macro_rules! mousemotion_grab {
                     mm.mdky,
                     $state.root,
                     True,
-                    (ButtonPressMask | ButtonReleaseMask) as u32,
+                    (ButtonPressMask | ButtonReleaseMask | PointerMotionMask) as u32,
                     GrabModeAsync,
                     GrabModeAsync,
                     0,
