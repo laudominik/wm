@@ -7,7 +7,7 @@ use std::mem;
 use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w};
 use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XRaiseWindow, XWindowAttributes};
 
-use crate::state::{self, Keybinding, MouseButton, Mousemotion, State, KEYBINDINGS, MOUSEMOTIONS};
+use crate::state::{self, Keybinding, Mousemotion, State, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
 use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
@@ -52,9 +52,17 @@ pub fn make(state: &mut state::State){
     {
         set_mousemotion!(
             modkey: MODKEY,
-            callback: |state, pt0, pt1| {},
-            mousebutton: MouseButton::RIGHT
-        )
+            callback: |state, pt| {println!("pressed {} {}", pt.0, pt.1)},
+            mousebutton: 3,
+            onpress
+        );
+
+        set_mousemotion!(
+            modkey: MODKEY,
+            callback: |state, pt| {println!("released {} {}", pt.0, pt.1)},
+            mousebutton: 3,
+            onrelease
+        );
     }
     
     /* keybindings */
@@ -166,7 +174,9 @@ pub fn make(state: &mut state::State){
             space.custom = Some(CustomData {
                 separator: screen_width/2,
                 fullscreen_windows: HashSet::new(),
-                floating_windows: HashSet::new()
+                floating_windows: HashSet::new(),
+                rightclick_grab_p0: (0,0),
+                rightclick_grab_p1: (0,0)
             });
         }
     }
@@ -175,7 +185,9 @@ pub fn make(state: &mut state::State){
 pub struct CustomData {
     pub separator: u32 /* used by cascade_autotiling */,
     pub fullscreen_windows: HashSet<Window>,
-    pub floating_windows: HashSet<Window>
+    pub floating_windows: HashSet<Window>,
+    pub rightclick_grab_p0: (i32, i32),
+    pub rightclick_grab_p1: (i32, i32)
 }
 
 impl state::State<'_> {
@@ -252,6 +264,15 @@ impl state::State<'_> {
         }
     }
 
+
+
+    fn rightclick_grab(){
+
+    }
+
+    fn rightclick_release(){
+
+    }
 
     /*
     mousemotion idea:

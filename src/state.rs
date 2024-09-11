@@ -28,7 +28,18 @@ pub struct Active {
 }
 
 pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
-pub static mut MOUSEMOTIONS: Vec<Mousemotion> = Vec::new();
+
+pub static mut MOUSEMOTIONS: MousemotionsType = MousemotionsType{
+    on_press: Vec::new(),
+    on_release: Vec::new(),
+    on_move: Vec::new()
+};
+pub struct MousemotionsType {
+    pub on_press: Vec<Mousemotion>,
+    pub on_release: Vec<Mousemotion>,
+    pub on_move: Vec<Mousemotion>
+}
+
 
 pub struct Keybinding {
     pub mdky: u32,
@@ -36,14 +47,8 @@ pub struct Keybinding {
     pub callback: Arc<dyn Fn(&mut State) + Send + Sync>
 }
 
-pub enum MouseButton {
-    LEFT,
-    RIGHT,
-    MIDDLE
-}
-
 pub struct Mousemotion {
     pub mdky: u32,
-    pub button: MouseButton,
-    pub callback: Arc<dyn Fn(&mut State, (i32, i32), (i32, i32)) + Send + Sync>
+    pub button: u32,
+    pub callback: Arc<dyn Fn(&mut State, (i32, i32)) + Send + Sync>
 }

@@ -1,9 +1,11 @@
+use std::os::raw::c_uint;
 use std::{mem, os::linux::raw::stat};
 use std::error::Error;
 
 use x11::xlib::{self, CWBorderWidth, EnterWindowMask, False, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
 use crate::active_workspace;
+use crate::state::MOUSEMOTIONS;
 use crate::{active_workspace_wins, config::STYLE, state::{State, KEYBINDINGS}, wm::_Tile};
 
 
@@ -11,7 +13,12 @@ macro_rules! callback {
     ($state: expr, $fn: ident, $ev:expr) => {
         $fn($state, unsafe { $ev.$fn } )
     };
+
+    ($state: expr, $fn: expr, $ev_name: ident, $ev:expr) => {
+        $fn($state, unsafe {$ev.$ev_name})
+    }
 }
+
 
 pub fn handle(state: &mut State, ev: xlib::XEvent){
     let ty = ev.get_type();
@@ -21,6 +28,8 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
         xlib::KeyPress => callback!(state, key, ev),
         xlib::UnmapNotify => callback!(state, unmap, ev),
         xlib::EnterNotify => callback!(state, crossing, ev),
+        xlib::ButtonPress => callback!(state, button_pressed, button, ev),
+        xlib::ButtonRelease => callback!(state, button_released, button, ev),
         _ => println!("Unhandled event")
     }
 }
@@ -65,3 +74,18 @@ fn crossing(state: &mut State, ev: xlib::XCrossingEvent){
     state.active.window = ev.window;
     state.retile();
 }
+
+macro_rules! mm_invoke_callback {
+    ($state: expr, $ty: ident, $ev: expr) => {
+        for mm in unsafe{&MOUSEMOTIONS.$ty} {
+            if mm.button != $ev.button {
+                continue;
+            }
+            (mm.callback)($state, ($ev.x, $ev.y));
+        }
+    };
+}
+
+
+fn button_pressed(state: &mut State, ev: xlib::XButtonEvent){ mm_invoke_callback!(state, on_press, ev); }
+fn button_released(state: &mut State, ev: xlib::XButtonEvent){ mm_invoke_callback!(state, on_release, ev); }

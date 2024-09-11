@@ -47,10 +47,22 @@ macro_rules! spawn_with_shell {
 
 #[macro_export]
 macro_rules! set_mousemotion {
-    (modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr) => {
+    (modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr, onpress) => {
         {
             unsafe {
-                MOUSEMOTIONS.push(Mousemotion {
+                MOUSEMOTIONS.on_press.push(Mousemotion {
+                    mdky: $mdky, 
+                    callback: Arc::new($cb),
+                    button: $msby
+                });
+            }
+        }
+    };
+
+    (modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr, onrelease) => {
+        {
+            unsafe {
+                MOUSEMOTIONS.on_release.push(Mousemotion {
                     mdky: $mdky, 
                     callback: Arc::new($cb),
                     button: $msby
