@@ -2,7 +2,7 @@ use std::os::raw::c_uint;
 use std::{mem, os::linux::raw::stat};
 use std::error::Error;
 
-use x11::xlib::{self, CWBorderWidth, EnterWindowMask, False, PointerMotionHintMask, PointerMotionMask, StructureNotifyMask, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
+use x11::xlib::{self, ButtonPressMask, CWBorderWidth, EnterWindowMask, False, PointerMotionHintMask, PointerMotionMask, StructureNotifyMask, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
 
 use crate::active_workspace;
 use crate::state::MOUSEMOTIONS;
@@ -40,7 +40,7 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
     if( unsafe { XGetWindowAttributes(state.dpy, ev.window, &mut wa) } == 0) { return };
 
-    unsafe { XSelectInput(state.dpy, ev.window, EnterWindowMask | PointerMotionMask | StructureNotifyMask) };
+    unsafe { XSelectInput(state.dpy, ev.window, EnterWindowMask | PointerMotionMask | StructureNotifyMask ) };
 
     state.focus(ev.window);
     active_workspace_wins!(state).push(ev.window);

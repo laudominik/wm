@@ -183,7 +183,8 @@ pub fn make(state: &mut state::State){
                 floating_windows: HashSet::new(),
                 rightclick_grab_origin: (0,0),
                 rightclick_grab_window: 0,
-                rightclick_grabbing: false
+                rightclick_grabbing: false,
+                rightclick_floating_p0: (0, 0)
             });
         }
     }
@@ -194,8 +195,21 @@ pub struct CustomData {
     pub fullscreen_windows: HashSet<Window>,
     pub floating_windows: HashSet<Window>,
     pub rightclick_grab_origin: (i32, i32),
+    pub rightclick_floating_p0: (i32, i32),
     pub rightclick_grab_window: Window,
     pub rightclick_grabbing: bool
+}
+
+macro_rules! is_floating {
+    ($state: expr, $window: expr) => {
+        active_workspace!($state).custom.as_ref().unwrap().floating_windows.contains($window)
+    };
+}
+
+macro_rules! custom {
+    ($state: expr) => {
+        active_workspace!($state).custom.as_mut().unwrap()
+    };
 }
 
 impl state::State<'_> {
@@ -210,7 +224,7 @@ impl state::State<'_> {
                 if active_workspace!(self).custom.as_ref().unwrap().fullscreen_windows.contains(window) {
                     fullscreen_windows.push(*window);
                     continue;
-                } else if active_workspace!(self).custom.as_ref().unwrap().floating_windows.contains(window) {
+                } else if is_floating!(self, window) {
                     floating_windows.push(*window);
                     continue;
                 }
@@ -273,9 +287,16 @@ impl state::State<'_> {
     }
 
     fn rightclick_grab(&mut self, pt: (i32, i32)){
-        if let Some(custom) = &mut active_workspace!(self).custom {
-            custom.rightclick_grab_origin = pt;
-            custom.rightclick_grabbing = true;
+
+        if active_workspace!(self).custom.is_none() { return };
+
+        custom!(self).rightclick_grab_origin = pt;
+        custom!(self).rightclick_grabbing = true;
+
+        for i in 0..active_workspace_wins!(self).len() {
+            let rect = active_workspace_wins!(self)[i].get_rect(self).clone();
+            custom!(self).rightclick_grab_window = self.active.window;
+            custom!(self).rightclick_floating_p0 = (rect.0 + rect.2 as i32, rect.1 + rect.3 as i32);
         }
     }
 
@@ -291,27 +312,33 @@ impl state::State<'_> {
             return;
         }
 
-        if !active_workspace!(self).custom.as_ref().unwrap().rightclick_grabbing {
-            return;
+        if active_workspace!(self).custom.as_ref().unwrap().rightclick_grabbing {
+            if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_window) {
+                let rect = custom!(self).rightclick_grab_window.get_rect(self);
+                let difference_x = (x - rect.0).abs();
+                let difference_y: i32 = (y - rect.1).abs();
+
+                println!("{} {}", difference_x, difference_y);
+                //self.active.window.do_map(self,  rect);
+
+                if (x - custom!(self).rightclick_grab_origin.0).abs() > 50
+                || (y - custom!(self).rightclick_grab_origin.1).abs() > 50
+                {
+                    custom!(self).rightclick_grab_window.do_map(self, (rect.0, rect.1, (rect.0 as i32 + difference_x) as u32, (rect.1 as i32 + difference_y) as u32));
+                    active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
+                    active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.1 = y;
+                }
+                return;
+            }
+
+            active_workspace!(self).custom.as_mut().unwrap().separator = x as u32;
+            if (x - active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_origin.0).abs() > 50 {
+                self.retile();
+                active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
+            }
         }
 
-        active_workspace!(self).custom.as_mut().unwrap().separator = x as u32;
-
-        if (x - active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_origin.0).abs() > 50 {
-            self.retile();
-            active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
-        }
-
-        // if let Some(custom) = &mut active_workspace!(self).custom {
-        //     if(custom.rightclick_grabbing) { 
-        //         if x - custom.rightclick_grab_origin.0 > 50 {
-        //             self.retile();
-        //             custom.rightclick_grab_origin.0 = x;
-        //         }
-
-        //         custom.separator = x as u32; 
-        //     }
-        // }
+     
     }
 
 }
