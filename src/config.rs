@@ -38,7 +38,7 @@ pub static STYLE: Style = Style {
             border: "#ffff00"
        }
     },
-    border_thickness: 3,
+    border_thickness: 5,
     useless_gap: 5
 };
 
@@ -66,7 +66,21 @@ pub fn make(state: &mut state::State){
 
         set_mousemotion!(
             modkey: MODKEY,
-            callback: |state, pt| {state.rightclick_move(pt)},
+            callback: |state, pt| {state.leftclick_grab(pt)},
+            mousebutton: 1,
+            onpress
+        );
+
+        set_mousemotion!(
+            modkey: MODKEY,
+            callback: |state, pt| {state.leftclick_release(pt)},
+            mousebutton: 1,
+            onrelease
+        );
+
+        set_mousemotion!(
+            modkey: MODKEY,
+            callback: |state, pt| {state.mouse_move(pt)},
             onmove
         );
     }
@@ -184,7 +198,9 @@ pub fn make(state: &mut state::State){
                 rightclick_grab_origin: (0,0),
                 rightclick_grab_window: 0,
                 rightclick_grabbing: false,
-                rightclick_floating_p0: (0, 0)
+                leftclick_grab_window: 0,
+                leftclick_d: (0, 0),
+                leftclick_grabbing: false
             });
         }
     }
@@ -195,9 +211,11 @@ pub struct CustomData {
     pub fullscreen_windows: HashSet<Window>,
     pub floating_windows: HashSet<Window>,
     pub rightclick_grab_origin: (i32, i32),
-    pub rightclick_floating_p0: (i32, i32),
     pub rightclick_grab_window: Window,
-    pub rightclick_grabbing: bool
+    pub rightclick_grabbing: bool,
+    pub leftclick_d: (i32, i32),
+    pub leftclick_grab_window: Window,
+    pub leftclick_grabbing: bool
 }
 
 macro_rules! is_floating {
@@ -260,7 +278,6 @@ impl state::State<'_> {
     fn draw_floating_windows(&mut self, windows: &Vec<Window>){
         for window in windows.iter() {
             let rect = window.get_rect(self);
-            unsafe { XRaiseWindow(self.dpy, *window) };       
             window.do_map(self,  rect);    
         }
     }
@@ -286,47 +303,52 @@ impl state::State<'_> {
         }
     }
 
-    fn rightclick_grab(&mut self, pt: (i32, i32)){
-
+    fn leftclick_grab(&mut self, (x, y): (i32, i32)){
         if active_workspace!(self).custom.is_none() { return };
+        custom!(self).leftclick_grab_window = self.active.window;
+        custom!(self).leftclick_grabbing = true;
+        self.active.focus_locked = true;
+        let rect = self.active.window.get_rect(self);
+        custom!(self).leftclick_d = (x - rect.0, y - rect.1);
+    }
 
+    fn leftclick_release(&mut self, pt: (i32, i32)){
+        if active_workspace!(self).custom.is_none() { return };
+        custom!(self).leftclick_grabbing = false;
+        self.active.focus_locked = false;
+    }
+
+    fn rightclick_grab(&mut self, pt: (i32, i32)){
+        if active_workspace!(self).custom.is_none() { return };
         custom!(self).rightclick_grab_origin = pt;
         custom!(self).rightclick_grabbing = true;
-
-        for i in 0..active_workspace_wins!(self).len() {
-            let rect = active_workspace_wins!(self)[i].get_rect(self).clone();
-            custom!(self).rightclick_grab_window = self.active.window;
-            custom!(self).rightclick_floating_p0 = (rect.0 + rect.2 as i32, rect.1 + rect.3 as i32);
-        }
+        self.active.focus_locked = true;
+        custom!(self).rightclick_grab_window = self.active.window;
     }
 
     fn rightclick_release(&mut self, (x, y): (i32, i32)){
         if let Some(custom) = &mut active_workspace!(self).custom {
             custom.rightclick_grab_origin = (0,0);
             custom.rightclick_grabbing = false;
+            self.active.focus_locked = false;
         }
     }
     
-    fn rightclick_move(&mut self, (x, y): (i32, i32)){
-        if active_workspace!(self).custom.is_none() {
-            return;
-        }
-
+    fn mouse_move(&mut self, (x, y): (i32, i32)){
+        if active_workspace!(self).custom.is_none() { return; }
+        
         if active_workspace!(self).custom.as_ref().unwrap().rightclick_grabbing {
             if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_window) {
-                let rect = custom!(self).rightclick_grab_window.get_rect(self);
-                let difference_x = (x - rect.0).abs();
-                let difference_y: i32 = (y - rect.1).abs();
-
-                println!("{} {}", difference_x, difference_y);
-                //self.active.window.do_map(self,  rect);
+                let rect: (i32, i32, u32, u32) = custom!(self).rightclick_grab_window.get_rect(self);
+                let difference_x = (x - rect.0).abs() as u32;
+                let difference_y = (y - rect.1).abs() as u32;
 
                 if (x - custom!(self).rightclick_grab_origin.0).abs() > 50
                 || (y - custom!(self).rightclick_grab_origin.1).abs() > 50
                 {
-                    custom!(self).rightclick_grab_window.do_map(self, (rect.0, rect.1, (rect.0 as i32 + difference_x) as u32, (rect.1 as i32 + difference_y) as u32));
-                    active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
-                    active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.1 = y;
+                    custom!(self).rightclick_grab_window.do_map(self, (rect.0, rect.1, difference_x, difference_y));
+                    custom!(self).rightclick_grab_origin.0 = x;
+                    custom!(self).rightclick_grab_origin.1 = y;
                 }
                 return;
             }
@@ -336,9 +358,23 @@ impl state::State<'_> {
                 self.retile();
                 active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
             }
+            return;
         }
 
-     
+        
+        if active_workspace!(self).custom.as_ref().unwrap().leftclick_grabbing {
+            if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().leftclick_grab_window) {
+                let rect: (i32, i32, u32, u32) = custom!(self).leftclick_grab_window.get_rect(self);
+                let x_new = x - custom!(self).leftclick_d.0;
+                let y_new = y - custom!(self).leftclick_d.1;
+
+                if (x_new - rect.0).abs() > 50
+                || (y_new - rect.1).abs() > 50 {
+                    custom!(self).leftclick_grab_window.do_map(self, (x_new, y_new, rect.2, rect.3));
+                }
+                return;
+            }
+        }
     }
 
 }

@@ -50,7 +50,8 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
             colors: unsafe { mem::zeroed() },
             active: Active {
                 workspace: 0,
-                window: root
+                window: root,
+                focus_locked: false
             }
         };
     }

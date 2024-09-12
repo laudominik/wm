@@ -25,6 +25,7 @@ pub struct State<'a> {
 pub struct Active {
     pub workspace: usize,
     pub window: Window,
+    pub focus_locked: bool,
 }
 
 pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
