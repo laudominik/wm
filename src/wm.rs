@@ -1,5 +1,5 @@
-use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XGetWindowAttributes, XLowerWindow, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XUnmapWindow, XWindowAttributes, XWindowChanges};
-use std::{mem, process::exit};
+use x11::xlib::{Atom, CWBorderWidth, ClientMessage, ClientMessageData, CurrentTime, False, NoEventMask, PropModeReplace, RevertToNone, RevertToPointerRoot, SubstructureNotifyMask, SubstructureRedirectMask, True, Window, XChangeProperty, XClientMessageEvent, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XFlush, XGetWindowAttributes, XInternAtom, XLowerWindow, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XUnmapWindow, XWindowAttributes, XWindowChanges, XA_CARDINAL};
+use std::{ffi::CString, mem, process::exit};
 
 use crate::{config::{CustomData, STYLE}, state};
 
@@ -63,30 +63,57 @@ impl state::State<'_> {
         self.retile();
     }
 
-    pub fn next_workspace(&mut self){
+    fn set_workspace(&mut self, no: usize){
+        let current_desktop: Atom = unsafe { XInternAtom(self.dpy,  CString::new("_NET_CURRENT_DESKTOP").unwrap().as_ptr(), False) };
+        let raw = &no as *const _ as *const u8;
+        unsafe { XChangeProperty(
+            self.dpy, 
+            self.root, 
+            current_desktop, XA_CARDINAL, 32, PropModeReplace, raw, 1);
+        }
+        let mut msg_data = ClientMessageData::new();
+        msg_data.set_long(0, no as i64);
+        msg_data.set_long(1, CurrentTime as i64);
 
+        let msg = XClientMessageEvent {
+            type_: ClientMessage,
+            serial: 0,
+            send_event: False,
+            display: self.dpy,
+            window: self.root,
+            message_type: 0,
+            format: 32,
+            data: msg_data
+        };
+
+        let raw2 = &msg as *const _ as *mut XEvent;
+        
+        unsafe { 
+            XSendEvent(self.dpy, self.root, False, SubstructureNotifyMask | SubstructureRedirectMask, raw2);
+            XFlush(self.dpy);
+        };
+        
         for window in active_workspace_wins!(self).iter() {
             unsafe { XUnmapWindow(self.dpy, *window) };
         }
 
-        self.active.workspace+=1;
-        self.active.workspace%=self.workspaces.len();
+        self.active.workspace = no;
         self.retile();
     }
 
-    pub fn prev_workspace(&mut self){
+    pub fn next_workspace(&mut self){
+        self.set_workspace((self.active.workspace+1)%self.workspaces.len());
+    }
 
-        for window in active_workspace_wins!(self).iter() {
-            unsafe { XUnmapWindow(self.dpy, *window) };
-        }
+    pub fn prev_workspace(&mut self){
+        let mut new_no: usize = 0;
 
         if self.active.workspace == 0 {
-            self.active.workspace = self.workspaces.len() - 1;
+            new_no = self.workspaces.len() - 1;
         } else {
-            self.active.workspace-=1;
+            new_no = self.active.workspace - 1;
         }
-
-        self.retile();
+        self.set_workspace(new_no);
     }
 
     pub fn send_active_window_to_workspace(&mut self, workspace_no: usize) {
@@ -100,11 +127,7 @@ impl state::State<'_> {
 
     pub fn goto_workspace(&mut self, workspace_no: usize){
         if workspace_no >= self.workspaces.len() { return }
-        for window in active_workspace_wins!(self).iter() {
-            unsafe { XUnmapWindow(self.dpy, *window) };
-        }
-        self.active.workspace = workspace_no;
-        self.retile();
+        self.set_workspace(workspace_no);
     }
 
     pub fn close_active(&mut self){
