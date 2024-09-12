@@ -26,7 +26,7 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
     match ty {
         xlib::MapRequest => callback!(state, map_request, ev),
         xlib::KeyPress => callback!(state, key, ev),
-        xlib::UnmapNotify => callback!(state, unmap, ev),
+        xlib::DestroyNotify => callback!(state, destroy_window, ev),
         xlib::EnterNotify => callback!(state, crossing, ev),
         xlib::ButtonPress => callback!(state, button_pressed, button, ev),
         xlib::ButtonRelease => callback!(state, button_released, button, ev),
@@ -48,7 +48,8 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent){
     unsafe {XSync(state.dpy, False)};
 }   
 
-fn unmap(state: &mut State, ev: xlib::XUnmapEvent){
+
+fn destroy_window(state: &mut State, ev: xlib::XDestroyWindowEvent){
 
     active_workspace_wins!(state).retain(|x| *x != ev.window);
     

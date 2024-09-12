@@ -1,4 +1,4 @@
-use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XGetWindowAttributes, XLowerWindow, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
+use x11::xlib::{CWBorderWidth, CurrentTime, False, NoEventMask, RevertToNone, RevertToPointerRoot, Window, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XGetWindowAttributes, XLowerWindow, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XUnmapWindow, XWindowAttributes, XWindowChanges};
 use std::{mem, process::exit};
 
 use crate::{config::{CustomData, STYLE}, state};
@@ -60,6 +60,50 @@ impl state::State<'_> {
             self.active.window = active_workspace_wins!(self)[0];
         }
 
+        self.retile();
+    }
+
+    pub fn next_workspace(&mut self){
+
+        for window in active_workspace_wins!(self).iter() {
+            unsafe { XUnmapWindow(self.dpy, *window) };
+        }
+
+        self.active.workspace+=1;
+        self.active.workspace%=self.workspaces.len();
+        self.retile();
+    }
+
+    pub fn prev_workspace(&mut self){
+
+        for window in active_workspace_wins!(self).iter() {
+            unsafe { XUnmapWindow(self.dpy, *window) };
+        }
+
+        if self.active.workspace == 0 {
+            self.active.workspace = self.workspaces.len() - 1;
+        } else {
+            self.active.workspace-=1;
+        }
+
+        self.retile();
+    }
+
+    pub fn send_active_window_to_workspace(&mut self, workspace_no: usize) {
+        if workspace_no >= self.workspaces.len() { return }
+        active_workspace_wins!(self).retain(|x| *x != self.active.window);
+        unsafe { XUnmapWindow(self.dpy, self.active.window) };
+        self.workspaces[workspace_no].windows.push(self.active.window);
+        self.active.window = 0;
+        self.retile();
+    }
+
+    pub fn goto_workspace(&mut self, workspace_no: usize){
+        if workspace_no >= self.workspaces.len() { return }
+        for window in active_workspace_wins!(self).iter() {
+            unsafe { XUnmapWindow(self.dpy, *window) };
+        }
+        self.active.workspace = workspace_no;
         self.retile();
     }
 

@@ -7,7 +7,7 @@ Window manager written in Rust. Heavily inspired by DWM. The goal is to support 
 * spawning some scripts with shell on startup ✔
 * top bar
 * mouse motions ✔
-* multiple workspaces
+* multiple workspaces ✔
 * keybindings ✔
 * two screens support
 

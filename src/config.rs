@@ -4,7 +4,7 @@ use std::process::Command;
 use std::sync::Arc;
 use std::mem;
 
-use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w};
+use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w, XK_1, XK_2, XK_3, XK_4};
 use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XRaiseWindow, XWindowAttributes};
 
 use crate::state::{self, Keybinding, Mousemotion, State, KEYBINDINGS, MOUSEMOTIONS};
@@ -50,133 +50,40 @@ const MODKEY_CTRL: u32 = MODKEY | ControlMask;
 pub fn make(state: &mut state::State){
     /* mouse motion */
     {
-        set_mousemotion!(
-            modkey: MODKEY,
-            callback: |state, pt| {state.rightclick_grab(pt)},
-            mousebutton: 3,
-            onpress
-        );
-
-        set_mousemotion!(
-            modkey: MODKEY,
-            callback: |state, pt| {state.rightclick_release(pt)},
-            mousebutton: 3,
-            onrelease
-        );
-
-        set_mousemotion!(
-            modkey: MODKEY,
-            callback: |state, pt| {state.leftclick_grab(pt)},
-            mousebutton: 1,
-            onpress
-        );
-
-        set_mousemotion!(
-            modkey: MODKEY,
-            callback: |state, pt| {state.leftclick_release(pt)},
-            mousebutton: 1,
-            onrelease
-        );
-
-        set_mousemotion!(
-            modkey: MODKEY,
-            callback: |state, pt| {state.mouse_move(pt)},
-            onmove
-        );
+        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.rightclick_grab(pt)}, mousebutton: 3, onpress );
+        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.rightclick_release(pt)}, mousebutton: 3, onrelease );
+        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.leftclick_grab(pt)}, mousebutton: 1, onpress );
+        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.leftclick_release(pt)}, mousebutton: 1, onrelease );
+        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.mouse_move(pt)}, onmove );
     }
     
     /* keybindings */
     {
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |_| {spawn_with_shell!("alacritty");}, 
-            key: XK_Return
-        );
-
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |_| {spawn_with_shell!("dmenu_run");},
-            key: XK_r
-        );
-
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |state| {state.focus_next();},
-            key: XK_j
-        );
-
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |state| {state.focus_previous();},
-            key: XK_k
-        );
-
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |state| {toggle_active_window_prop!(state, fullscreen_windows);},
-            key: XK_f
-        );
-
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |state| {state.separator_modify(40)},
-            key: XK_l
-        );
-
-        set_keybinding!(
-            modkey: MODKEY,
-            callback: |state| {state.separator_modify(-40)},
-            key: XK_h
-        );
-    
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.close_active();},
-            key: XK_c
-        );
-
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.active_floating_move(0, 40);},
-            key: XK_Down
-        );
-
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.active_floating_move(0, -40);},
-            key: XK_Up
-        );
-
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.active_floating_move(-40, 0);},
-            key: XK_Left
-        );
-
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.active_floating_move(40, 0);},
-            key: XK_Right
-        );
-
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.active_floating_resize(40, 40);},
-            key: XK_plus
-        );
-        
-        set_keybinding!(
-            modkey: MODKEY_SHIFT,
-            callback: |state| {state.active_floating_resize(-40, -40);},
-            key: XK_minus
-        );
-
-        set_keybinding!(
-            modkey: MODKEY_CTRL,
-            callback: |state| {toggle_active_window_prop!(state, floating_windows);},
-            key: XK_space
-        );
-   
+        set_keybinding!( modkey: MODKEY, callback: |_| {spawn_with_shell!("alacritty");}, key: XK_Return );
+        set_keybinding!( modkey: MODKEY, callback: |_| {spawn_with_shell!("dmenu_run");}, key: XK_r );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.focus_next();}, key: XK_j );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.focus_previous();}, key: XK_k );
+        set_keybinding!( modkey: MODKEY, callback: |state| {toggle_active_window_prop!(state, fullscreen_windows);}, key: XK_f );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.separator_modify(40)}, key: XK_l );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.separator_modify(-40)}, key: XK_h );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.next_workspace(); }, key: XK_Right );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.prev_workspace(); }, key: XK_Left );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(0); }, key: XK_1 );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(1); }, key: XK_2 );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(2); }, key: XK_3 );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(3); }, key: XK_4 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(0); }, key: XK_1 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(1); }, key: XK_2 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(2); }, key: XK_3 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(3); }, key: XK_4 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.close_active();}, key: XK_c );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(0, 40);}, key: XK_Down );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(0, -40);}, key: XK_Up );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(-40, 0);}, key: XK_Left );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(40, 0);}, key: XK_Right );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_resize(40, 40);}, key: XK_plus );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_resize(-40, -40);}, key: XK_minus );
+        set_keybinding!( modkey: MODKEY_CTRL, callback: |state| {toggle_active_window_prop!(state, floating_windows);}, key: XK_space );
     }
 
     /* startup apps */
