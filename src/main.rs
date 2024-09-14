@@ -13,6 +13,7 @@ mod util;
 
 pub fn loop_poll_events(state: &mut state::State){
     let mut ev : xlib::XEvent = unsafe { mem::zeroed() };
+    unsafe { xlib::XSync(state.dpy, xlib::False); }
     while(unsafe { XNextEvent(state.dpy, &mut ev) } == 0) { event::handle(state, ev); }
 }
 

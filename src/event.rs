@@ -29,6 +29,7 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
         xlib::ButtonRelease => callback!(state, button_released, button, ev),
         xlib::MotionNotify => callback!(state, motion, ev),
         xlib::UnmapNotify => callback!(state, unmap, ev),
+        xlib::ConfigureNotify => callback!(state, configure_request, ev),
         _ => println!("xroagwem: unhandled event")
     }
 }
@@ -45,6 +46,7 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent) {
     unsafe {XSync(state.dpy, False)};
 }   
 
+fn configure_request(state: &mut State, _: xlib::XConfigureRequestEvent) { unsafe { xlib::XSync(state.dpy, xlib::False); } }
 
 fn destroy_window(_: &mut State, __: xlib::XDestroyWindowEvent) {
     /* WARNING: there's some issue with XDestroyWindowEvent.window                    */
@@ -52,6 +54,7 @@ fn destroy_window(_: &mut State, __: xlib::XDestroyWindowEvent) {
     /* so for now using unmap (but need to be sure unmap is called AFTER              */
     /* switching active_workspace for changing workspaces                             */
     /* otherwise all windows will commit suicide)                                     */
+
 }
 
 fn unmap(state: &mut State, ev: xlib::XUnmapEvent) { 
@@ -59,9 +62,7 @@ fn unmap(state: &mut State, ev: xlib::XUnmapEvent) {
     if ev.window == state.active.window {
         state.focus_next();
     }
-    state.retile();
-
-    unsafe { XSync(state.dpy, False); }
+    state.retile(); 
 }
 
 fn key(state: &mut State, ev: xlib::XKeyEvent) {
