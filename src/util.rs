@@ -79,7 +79,28 @@ macro_rules! add_widget {
     ($widget: expr) => {
         {
             unsafe {
-                WIDGETS.push(Box::new($widget));
+                WIDGETS.push(
+                    Box::new(
+                        Widget {
+                            wspec: Box::new($widget),
+                            font: ""
+                        }
+                    )
+                )
+            }
+        }
+    };
+    ($widget: expr, $font: expr) => {
+        {
+            unsafe {
+                WIDGETS.push(
+                    Box::new(
+                        Widget {
+                            wspec: Box::new($widget),
+                            font: $font
+                        }
+                    )
+                )
             }
         }
     };

@@ -30,7 +30,7 @@ pub struct Active {
     pub focus_locked: bool,
 }
 
-pub static mut WIDGETS: Vec<Box<dyn widgets::Widget>> = Vec::new();
+pub static mut WIDGETS: Vec<Box<widgets::Widget>> = Vec::new();
 pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
 
 macro_rules! mousemotion_type_decl {

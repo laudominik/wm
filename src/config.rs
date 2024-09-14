@@ -10,7 +10,7 @@ use crate::state::WIDGETS;
 use crate::state::{self, Keybinding, Mousemotion, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::Paddings;
 use crate::style::{ColorScheme, ColorSchemes, Style};
-use crate::widgets::TopBar;
+use crate::widgets::{TopBar, Widget};
 use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
 
@@ -58,7 +58,7 @@ const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
 pub fn make(state: &mut state::State){
     /* widgets */
     {
-        add_widget!(TopBar {});
+        add_widget!(TopBar {}, "Noto Sans CJK JP-12");
     }
 
     /* mouse motion */
@@ -109,6 +109,7 @@ pub fn make(state: &mut state::State){
     /* default workspaces config */
     {
         set_spaces!(state, ["一", "二", "三", "四"]);
+        //set_spaces!(state, ["1", "2", "3", "4"]);
         let screen_width = unsafe{xlib::XDisplayWidth(state.dpy, state.screen) as u32};
 
         for space in state.workspaces.iter_mut() {
