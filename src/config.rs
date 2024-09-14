@@ -6,6 +6,7 @@ use x11::keysym;
 use x11::xlib;
 
 use crate::state::{self, Keybinding, Mousemotion, KEYBINDINGS, MOUSEMOTIONS};
+use crate::style::Paddings;
 use crate::style::{ColorScheme, ColorSchemes, Style};
 use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
@@ -37,7 +38,13 @@ pub static STYLE: Style = Style {
        }
     },
     border_thickness: 5,
-    useless_gap: 5
+    useless_gap: 5,
+    paddings: Paddings {
+        top: 20,
+        bottom: 20,
+        left: 20,
+        right: 20
+    }
 };
 
 const MODKEY: u32 = xlib::Mod4Mask;

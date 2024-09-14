@@ -169,8 +169,8 @@ impl state::State<'_> {
         let latest_window = maybe_latest_window.unwrap();
         if windows.len() == 1 {
             latest_window.do_map(self, (
-                useless_gap as i32, useless_gap as i32, 
-                screen_width - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
+                (useless_gap + STYLE.paddings.left) as i32, (useless_gap + STYLE.paddings.top) as i32, 
+                screen_width - useless_gap * 2 - border * 2 - STYLE.paddings.left - STYLE.paddings.right, screen_height - useless_gap * 2 - border * 2 - STYLE.paddings.top - STYLE.paddings.bottom
             ));
             return;
         } 
@@ -181,19 +181,19 @@ impl state::State<'_> {
         }
         
         latest_window.do_map(self, (
-            useless_gap as i32, useless_gap as i32,
-            middle - useless_gap * 2 - border * 2, screen_height - useless_gap * 2 - border * 2
+            (useless_gap + STYLE.paddings.left) as i32, (useless_gap  + STYLE.paddings.top) as i32,
+            middle - useless_gap * 2 - border * 2 - STYLE.paddings.left, screen_height - useless_gap * 2 - border * 2 - STYLE.paddings.top - STYLE.paddings.bottom
         ));
 
         let len_rest = windows.len() - 1;
-        let increment = screen_height / len_rest as u32;
+        let increment = (screen_height - STYLE.paddings.top - STYLE.paddings.bottom) / len_rest as u32;
 
         for i in 0..len_rest {
             let start_y = increment * i as u32 + useless_gap;
 
             windows[i].do_map(self, (
-                (useless_gap / 2 + middle) as i32, start_y as i32, 
-                (screen_width - middle) - useless_gap * 2 - border * 2, increment - useless_gap * 2 - border * 2
+                (useless_gap / 2 + middle) as i32, (start_y + STYLE.paddings.top) as i32, 
+                (screen_width - middle) - useless_gap * 2 - border * 2 - STYLE.paddings.right, increment - useless_gap * 2 - border * 2
             ));
         }
     }
