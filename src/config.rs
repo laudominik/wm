@@ -48,12 +48,12 @@ const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
 pub fn make(state: &mut state::State){
     /* mouse motion */
     {
-        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt| {state.rightclick_grab(pt)}, mousebutton: 3);
-        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt| {state.rightclick_release(pt)}, mousebutton: 3 );
-        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt| {state.leftclick_grab(pt)}, mousebutton: 1 );
-        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt| {state.leftclick_release(pt)}, mousebutton: 1 );
-        set_mousemotion!( on_move, modkey: MODKEY, callback: |state, pt| {state.mouse_move(pt)}, nobutton );
-        set_mousemotion!( on_cross, modkey: MODKEY, callback: |state, pt| {state.mouse_move(pt)}, nobutton)
+        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| {state.rightclick_grab(pt)}, mousebutton: 3);
+        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt, _| {state.rightclick_release(pt)}, mousebutton: 3 );
+        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| {state.leftclick_grab(pt)}, mousebutton: 1 );
+        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt, _| {state.leftclick_release(pt)}, mousebutton: 1 );
+        set_mousemotion!( on_move, modkey: MODKEY, callback: |state, pt, _| {state.mouse_move(pt)}, nobutton );
+        set_mousemotion!( on_cross, modkey: MODKEY, callback: |state, _, window| {state.mouse_cross(window)}, nobutton );
     }
     
     /* keybindings */
@@ -240,53 +240,51 @@ impl state::State<'_> {
         }
     }
     
-    fn mouse_move(&mut self, (x, y): (i32, i32)){
+    fn mouse_move(&mut self, pt: (i32, i32)){
         if active_workspace!(self).custom.is_none() { return; }
-        
-        if active_workspace!(self).custom.as_ref().unwrap().rightclick_grabbing {
-            if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_window) {
-                let rect: (i32, i32, u32, u32) = custom!(self).rightclick_grab_window.get_rect(self);
-                let difference_x = (x - rect.0).abs() as u32;
-                let difference_y = (y - rect.1).abs() as u32;
+        if custom!(self).rightclick_grabbing { self.mouse_move_rightclick(pt) };
+        if custom!(self).leftclick_grabbing { self.mouse_move_leftclick(pt) };
+    }
 
-                if (x - custom!(self).rightclick_grab_origin.0).abs() > 50
-                || (y - custom!(self).rightclick_grab_origin.1).abs() > 50
-                {
-                    custom!(self).rightclick_grab_window.do_map(self, (rect.0, rect.1, difference_x, difference_y));
-                    custom!(self).rightclick_grab_origin.0 = x;
-                    custom!(self).rightclick_grab_origin.1 = y;
-                }
-                return;
-            }
+    fn mouse_move_rightclick(&mut self, (x, y): (i32, i32)) {
+        if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_window) {
+            let rect: (i32, i32, u32, u32) = custom!(self).rightclick_grab_window.get_rect(self);
+            let difference_x = (x - rect.0).abs() as u32;
+            let difference_y = (y - rect.1).abs() as u32;
 
-            active_workspace!(self).custom.as_mut().unwrap().separator = x as u32;
-            if (x - active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_origin.0).abs() > 50 {
-                self.retile();
-                active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
+            if (x - custom!(self).rightclick_grab_origin.0).abs() > 50
+            || (y - custom!(self).rightclick_grab_origin.1).abs() > 50
+            {
+                custom!(self).rightclick_grab_window.do_map(self, (rect.0, rect.1, difference_x, difference_y));
+                custom!(self).rightclick_grab_origin.0 = x;
+                custom!(self).rightclick_grab_origin.1 = y;
             }
             return;
         }
 
-        
-        if active_workspace!(self).custom.as_ref().unwrap().leftclick_grabbing {
-            if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().leftclick_grab_window) {
-                let rect: (i32, i32, u32, u32) = custom!(self).leftclick_grab_window.get_rect(self);
-                let x_new = x - custom!(self).leftclick_d.0;
-                let y_new = y - custom!(self).leftclick_d.1;
+        active_workspace!(self).custom.as_mut().unwrap().separator = x as u32;
+        if (x - active_workspace!(self).custom.as_ref().unwrap().rightclick_grab_origin.0).abs() > 50 {
+            self.retile();
+            active_workspace!(self).custom.as_mut().unwrap().rightclick_grab_origin.0 = x;
+        }
+        return;
+    }
 
-                if (x_new - rect.0).abs() > 50
-                || (y_new - rect.1).abs() > 50 {
-                    custom!(self).leftclick_grab_window.do_map(self, (x_new, y_new, rect.2, rect.3));
-                }
-                return;
-            }
+    fn mouse_move_leftclick(&mut self, (x, y): (i32, i32)) {
+        if !is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().leftclick_grab_window) { return; }
+        let rect: (i32, i32, u32, u32) = custom!(self).leftclick_grab_window.get_rect(self);
+        let x_new = x - custom!(self).leftclick_d.0;
+        let y_new = y - custom!(self).leftclick_d.1;
 
-            // for window in active_workspace_wins!(self).iter() {
-            //     window.get_rect(self);
-
-            // }
+        if (x_new - rect.0).abs() > 50
+        || (y_new - rect.1).abs() > 50 {
+            custom!(self).leftclick_grab_window.do_map(self, (x_new, y_new, rect.2, rect.3));
         }
     }
 
+    fn mouse_cross(&mut self, _window: xlib::Window) {
+        if active_workspace!(self).custom.is_none() { return };
+        if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().leftclick_grab_window) { return };
+    }
 }
 

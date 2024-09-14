@@ -54,5 +54,5 @@ pub struct Keybinding {
 pub struct Mousemotion {
     pub mdky: u32,
     pub button: u32,
-    pub callback: Arc<dyn Fn(&mut State, (i32, i32)) + Send + Sync>
+    pub callback: Arc<dyn Fn(&mut State, (i32, i32), Window) + Send + Sync>
 }

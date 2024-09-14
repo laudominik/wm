@@ -100,11 +100,22 @@ impl state::State<'_> {
     }
 
     pub fn close_active(&mut self){
-        if active_workspace_wins!(self).is_empty() { return;}
-
+        println!("closing... {}", self.active.window);
+        if active_workspace_wins!(self).is_empty() { return; }
+        active_workspace_wins!(self).retain(|x| *x != self.active.window);
+        self.retile();
         unsafe {    
             xlib::XDestroyWindow(self.dpy, self.active.window);
         }
+    }
+
+    fn window_exists(&self, window: xlib::Window) -> bool {
+        for workspace in self.workspaces.iter() {
+            for win in workspace.windows.iter() {
+                if *win == window { return true; }
+            }
+        }
+        return false;
     }
 
     pub fn cascade_autotiling(&mut self, windows: Vec<xlib::Window>){
@@ -161,6 +172,11 @@ pub trait WindowExt {
 
 impl WindowExt for xlib::Window {
     fn do_map(self, state: &mut state::State, rect: (i32, i32, u32, u32)){
+        if !state.window_exists(self) { 
+            println!("Warning: mapping a deleted window");
+            return 
+        }
+
         let mut wc: xlib::XWindowChanges = unsafe { mem::zeroed() };
         let mut border_col = state.colors.normal.border.pixel;
         wc.border_width = STYLE.border_thickness as i32;
