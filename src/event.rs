@@ -1,12 +1,9 @@
-use std::os::raw::c_uint;
-use std::{mem, os::linux::raw::stat};
-use std::error::Error;
+use std::mem;
 
-use x11::xlib::{self, ButtonPressMask, CWBorderWidth, EnterWindowMask, False, PointerMotionHintMask, PointerMotionMask, StructureNotifyMask, Window, XConfigureWindow, XDisplayHeight, XDisplayWidth, XFlush, XGetWindowAttributes, XKeycodeToKeysym, XMapRequestEvent, XMapWindow, XMoveResizeWindow, XRaiseWindow, XSelectInput, XSetWindowBorder, XSync, XWindowAttributes, XWindowChanges};
+use x11::xlib::{self, EnterWindowMask, False, PointerMotionMask, StructureNotifyMask, XGetWindowAttributes, XKeycodeToKeysym, XSelectInput, XSync, XWindowAttributes};
 
-use crate::active_workspace;
 use crate::state::MOUSEMOTIONS;
-use crate::{active_workspace_wins, config::STYLE, state::{State, KEYBINDINGS}, wm::_Tile};
+use crate::{active_workspace_wins, state::{State, KEYBINDINGS}, };
 
 
 macro_rules! callback {
@@ -70,14 +67,6 @@ fn key(state: &mut State, ev: xlib::XKeyEvent) {
     }
 }
 
-fn crossing(state: &mut State, ev: xlib::XCrossingEvent){
-    if ev.window == state.root { return };
-    if (state.active.focus_locked) { return };
-    unsafe { XRaiseWindow(state.dpy, ev.window) };       
-    state.active.window = ev.window;
-    state.retile();
-}
-
 macro_rules! mm_invoke_callback {
     ($state: expr, $ty: ident, $ev: expr) => {
         for mm in unsafe{&MOUSEMOTIONS.$ty} {
@@ -97,6 +86,15 @@ macro_rules! mm_invoke_callback {
         }
     };
 }
+
+fn crossing(state: &mut State, ev: xlib::XCrossingEvent) {
+    if ev.window == state.root { return };
+    if state.active.focus_locked { return };
+    state.focus(ev.window);
+    state.retile();
+    mm_invoke_callback!(state, on_cross, ev, nobutton);
+}
+
 
 
 fn button_pressed(state: &mut State, ev: xlib::XButtonEvent){ mm_invoke_callback!(state, on_press, ev); }

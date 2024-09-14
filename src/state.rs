@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use x11::xlib::{self, Window};
 
-use crate::{config::CustomData, style::ColorSchemesXft, wm};
+use crate::{style::ColorSchemesXft, wm};
 
 pub type Cursor = Cursor_<xlib::Cursor>;
 
@@ -30,19 +30,20 @@ pub struct Active {
 
 pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
 
-pub static mut MOUSEMOTIONS: MousemotionsType = MousemotionsType{
-    on_press: Vec::new(),
-    on_release: Vec::new(),
-    on_move: Vec::new(), 
-    on_window_enter: Vec::new()
-};
-pub struct MousemotionsType {
-    pub on_press: Vec<Mousemotion>,
-    pub on_release: Vec<Mousemotion>,
-    pub on_move: Vec<Mousemotion>,
-    pub on_window_enter: Vec<Mousemotion>
-}
-
+macro_rules! mousemotion_type_decl {
+    ([$($name:ident),*]) => {
+        pub struct MousemotionsType {
+            $(
+                pub $name: Vec<Mousemotion>,
+            )*
+        }
+        pub static mut MOUSEMOTIONS: MousemotionsType = MousemotionsType{
+            $(
+                $name: Vec::new(),
+            )*
+        };
+    };
+} mousemotion_type_decl!([on_press, on_release, on_move, on_cross]);
 
 pub struct Keybinding {
     pub mdky: u32,

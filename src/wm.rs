@@ -1,11 +1,11 @@
-use x11::xlib::{Atom, CWBorderWidth, ClientMessage, ClientMessageData, CurrentTime, False, NoEventMask, PropModeReplace, RevertToNone, RevertToPointerRoot, SubstructureNotifyMask, SubstructureRedirectMask, True, Window, XChangeProperty, XClientMessageEvent, XConfigureWindow, XDestroyWindow, XDisplayHeight, XDisplayWidth, XEvent, XFlush, XGetWindowAttributes, XInternAtom, XLowerWindow, XMapWindow, XMoveResizeWindow, XSendEvent, XSetInputFocus, XSetWindowBorder, XSync, XUnmapWindow, XWindowAttributes, XWindowChanges, XA_CARDINAL};
-use std::{ffi::CString, mem, process::exit};
+use x11::xlib;
+use std::mem;
 
 use crate::{config::{CustomData, STYLE}, state};
 
 pub struct Space<'a> {
     pub tag: &'a str,
-    pub windows: Vec<Window>,
+    pub windows: Vec<xlib::Window>,
     pub custom: Option<CustomData> /* custom config for active workspace*/
 }
 
@@ -30,7 +30,8 @@ macro_rules! active_workspace_wins {
 
 impl state::State<'_> {
 
-    pub fn focus(&mut self, window: Window){
+    pub fn focus(&mut self, window: xlib::Window){
+        unsafe { xlib::XRaiseWindow(self.dpy, window) };       
         self.active.window = window;
     }
 
@@ -52,9 +53,8 @@ impl state::State<'_> {
         if len == 0 { return; }
 
         if let Some(ix) = active_workspace_wins!(self).iter().position(|w| *w == self.active.window) {
-            let mut previous: usize = 0;
-            if ix == 0 { previous = len - 1;} 
-            else {previous = ix - 1};
+            let mut previous: usize = len - 1;
+            if ix != 0 { previous = ix - 1; } 
             self.active.window = active_workspace_wins!(self)[previous];
         } else {
             self.active.window = active_workspace_wins!(self)[0];
@@ -64,37 +64,8 @@ impl state::State<'_> {
     }
 
     fn set_workspace(&mut self, no: usize){
-        let current_desktop: Atom = unsafe { XInternAtom(self.dpy,  CString::new("_NET_CURRENT_DESKTOP").unwrap().as_ptr(), False) };
-        let raw = &no as *const _ as *const u8;
-        unsafe { XChangeProperty(
-            self.dpy, 
-            self.root, 
-            current_desktop, XA_CARDINAL, 32, PropModeReplace, raw, 1);
-        }
-        let mut msg_data = ClientMessageData::new();
-        msg_data.set_long(0, no as i64);
-        msg_data.set_long(1, CurrentTime as i64);
-
-        let msg = XClientMessageEvent {
-            type_: ClientMessage,
-            serial: 0,
-            send_event: False,
-            display: self.dpy,
-            window: self.root,
-            message_type: 0,
-            format: 32,
-            data: msg_data
-        };
-
-        let raw2 = &msg as *const _ as *mut XEvent;
-        
-        unsafe { 
-            XSendEvent(self.dpy, self.root, False, SubstructureNotifyMask | SubstructureRedirectMask, raw2);
-            XFlush(self.dpy);
-        };
-        
         for window in active_workspace_wins!(self).iter() {
-            unsafe { XUnmapWindow(self.dpy, *window) };
+            unsafe { xlib::XUnmapWindow(self.dpy, *window) };
         }
 
         self.active.workspace = no;
@@ -106,20 +77,18 @@ impl state::State<'_> {
     }
 
     pub fn prev_workspace(&mut self){
-        let mut new_no: usize = 0;
+        let mut new_no: usize = self.workspaces.len() - 1;
 
-        if self.active.workspace == 0 {
-            new_no = self.workspaces.len() - 1;
-        } else {
+        if self.active.workspace != 0 {
             new_no = self.active.workspace - 1;
-        }
+        } 
         self.set_workspace(new_no);
     }
 
     pub fn send_active_window_to_workspace(&mut self, workspace_no: usize) {
         if workspace_no >= self.workspaces.len() { return }
         active_workspace_wins!(self).retain(|x| *x != self.active.window);
-        unsafe { XUnmapWindow(self.dpy, self.active.window) };
+        unsafe { xlib::XUnmapWindow(self.dpy, self.active.window) };
         self.workspaces[workspace_no].windows.push(self.active.window);
         self.active.window = 0;
         self.retile();
@@ -134,20 +103,20 @@ impl state::State<'_> {
         if active_workspace_wins!(self).is_empty() { return;}
 
         unsafe {    
-            XDestroyWindow(self.dpy, self.active.window);
+            xlib::XDestroyWindow(self.dpy, self.active.window);
         }
     }
 
-    pub fn cascade_autotiling(&mut self, windows: Vec<Window>){
+    pub fn cascade_autotiling(&mut self, windows: Vec<xlib::Window>){
 
         for window in windows.iter() {
-            unsafe { XLowerWindow(self.dpy, *window) };       
+            unsafe { xlib::XLowerWindow(self.dpy, *window) };       
         }
 
         let useless_gap: u32 = STYLE.useless_gap;
         let border = STYLE.border_thickness;
-        let screen_width: u32 = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
-        let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
+        let screen_width: u32 = unsafe{xlib::XDisplayWidth(self.dpy, self.screen) as u32};
+        let screen_height = unsafe{xlib::XDisplayHeight(self.dpy, self.screen) as u32};
         
         let maybe_latest_window: Option<&u64> = windows.last();
         if maybe_latest_window.is_none() { return };
@@ -190,28 +159,28 @@ pub trait WindowExt {
     fn get_rect(self, state: &mut state::State) -> (i32, i32, u32, u32);
 }
 
-impl WindowExt for Window {
+impl WindowExt for xlib::Window {
     fn do_map(self, state: &mut state::State, rect: (i32, i32, u32, u32)){
-        let mut wc: XWindowChanges = unsafe { mem::zeroed() };
+        let mut wc: xlib::XWindowChanges = unsafe { mem::zeroed() };
         let mut border_col = state.colors.normal.border.pixel;
         wc.border_width = STYLE.border_thickness as i32;
 
         if self == state.active.window { border_col = state.colors.selected.border.pixel; }
 
         unsafe {
-            XConfigureWindow(state.dpy, self, CWBorderWidth.into(), &mut wc as *mut XWindowChanges);
-            XSetWindowBorder(state.dpy, self, border_col);
-            XMoveResizeWindow(state.dpy, self, 
+            xlib::XConfigureWindow(state.dpy, self, xlib::CWBorderWidth.into(), &mut wc as *mut xlib::XWindowChanges);
+            xlib::XSetWindowBorder(state.dpy, self, border_col);
+            xlib::XMoveResizeWindow(state.dpy, self, 
                 rect.0, rect.1,
                 rect.2, rect.3);
-            XMapWindow(state.dpy, self);
-            if self == state.active.window { XSetInputFocus(state.dpy, self, RevertToPointerRoot, CurrentTime); }
+                xlib::XMapWindow(state.dpy, self);
+            if self == state.active.window { xlib::XSetInputFocus(state.dpy, self, xlib::RevertToPointerRoot, xlib::CurrentTime); }
         }
     }
 
     fn get_rect(self, state: &mut state::State) -> (i32, i32, u32, u32) {
-        let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
-        if( unsafe { XGetWindowAttributes(state.dpy, self, &mut wa) } == 0) { return (0,0,0,0); };
+        let mut wa : xlib::XWindowAttributes = unsafe { mem::zeroed() };
+        if( unsafe { xlib::XGetWindowAttributes(state.dpy, self, &mut wa) } == 0) { return (0,0,0,0); };
         return (wa.x, wa.y, wa.width as u32, wa.height as u32)
     }
 }

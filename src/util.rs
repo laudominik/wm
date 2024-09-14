@@ -47,10 +47,12 @@ macro_rules! spawn_with_shell {
 
 #[macro_export]
 macro_rules! set_mousemotion {
-    (modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr, onpress) => {
+
+
+    ($ty: ident, modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr) => {
         {
             unsafe {
-                MOUSEMOTIONS.on_press.push(Mousemotion {
+                MOUSEMOTIONS.$ty.push(Mousemotion {
                     mdky: $mdky, 
                     callback: Arc::new($cb),
                     button: $msby
@@ -59,22 +61,10 @@ macro_rules! set_mousemotion {
         }
     };
 
-    (modkey: $mdky: expr, callback: $cb:expr, mousebutton: $msby:expr, onrelease) => {
+    ($ty: ident, modkey: $mdky: expr, callback: $cb:expr, nobutton) => {
         {
             unsafe {
-                MOUSEMOTIONS.on_release.push(Mousemotion {
-                    mdky: $mdky, 
-                    callback: Arc::new($cb),
-                    button: $msby
-                });
-            }
-        }
-    };
-
-    (modkey: $mdky: expr, callback: $cb:expr, onmove) => {
-        {
-            unsafe {
-                MOUSEMOTIONS.on_move.push(Mousemotion {
+                MOUSEMOTIONS.$ty.push(Mousemotion {
                     mdky: $mdky, 
                     callback: Arc::new($cb),
                     button: 0

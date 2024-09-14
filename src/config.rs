@@ -1,13 +1,11 @@
 use std::collections::HashSet;
-use std::f32::INFINITY;
 use std::process::Command;
 use std::sync::Arc;
-use std::mem;
 
-use x11::keysym::{XK_Down, XK_Left, XK_Return, XK_Right, XK_Up, XK_c, XK_downarrow, XK_f, XK_h, XK_j, XK_k, XK_l, XK_minus, XK_plus, XK_r, XK_space, XK_uparrow, XK_w, XK_1, XK_2, XK_3, XK_4};
-use x11::xlib::{ControlMask, Mod1Mask, Mod3Mask, Mod4Mask, ShiftMask, Window, XDisplayHeight, XDisplayWidth, XGetWindowAttributes, XRaiseWindow, XWindowAttributes};
+use x11::keysym;
+use x11::xlib;
 
-use crate::state::{self, Keybinding, Mousemotion, State, KEYBINDINGS, MOUSEMOTIONS};
+use crate::state::{self, Keybinding, Mousemotion, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::{ColorScheme, ColorSchemes, Style};
 use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
@@ -42,48 +40,49 @@ pub static STYLE: Style = Style {
     useless_gap: 5
 };
 
-const MODKEY: u32 = Mod4Mask;
-const MODKEY_SHIFT: u32 = MODKEY | ShiftMask;
-const MODKEY_CTRL: u32 = MODKEY | ControlMask;
+const MODKEY: u32 = xlib::Mod4Mask;
+const MODKEY_SHIFT: u32 = MODKEY |  xlib::ShiftMask;
+const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
 
 /* your private config goes here */
 pub fn make(state: &mut state::State){
     /* mouse motion */
     {
-        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.rightclick_grab(pt)}, mousebutton: 3, onpress );
-        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.rightclick_release(pt)}, mousebutton: 3, onrelease );
-        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.leftclick_grab(pt)}, mousebutton: 1, onpress );
-        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.leftclick_release(pt)}, mousebutton: 1, onrelease );
-        set_mousemotion!( modkey: MODKEY, callback: |state, pt| {state.mouse_move(pt)}, onmove );
+        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt| {state.rightclick_grab(pt)}, mousebutton: 3);
+        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt| {state.rightclick_release(pt)}, mousebutton: 3 );
+        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt| {state.leftclick_grab(pt)}, mousebutton: 1 );
+        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt| {state.leftclick_release(pt)}, mousebutton: 1 );
+        set_mousemotion!( on_move, modkey: MODKEY, callback: |state, pt| {state.mouse_move(pt)}, nobutton );
+        set_mousemotion!( on_cross, modkey: MODKEY, callback: |state, pt| {state.mouse_move(pt)}, nobutton)
     }
     
     /* keybindings */
     {
-        set_keybinding!( modkey: MODKEY, callback: |_| {spawn_with_shell!("alacritty");}, key: XK_Return );
-        set_keybinding!( modkey: MODKEY, callback: |_| {spawn_with_shell!("dmenu_run");}, key: XK_r );
-        set_keybinding!( modkey: MODKEY, callback: |state| {state.focus_next();}, key: XK_j );
-        set_keybinding!( modkey: MODKEY, callback: |state| {state.focus_previous();}, key: XK_k );
-        set_keybinding!( modkey: MODKEY, callback: |state| {toggle_active_window_prop!(state, fullscreen_windows);}, key: XK_f );
-        set_keybinding!( modkey: MODKEY, callback: |state| {state.separator_modify(40)}, key: XK_l );
-        set_keybinding!( modkey: MODKEY, callback: |state| {state.separator_modify(-40)}, key: XK_h );
-        set_keybinding!( modkey: MODKEY, callback: |state| { state.next_workspace(); }, key: XK_Right );
-        set_keybinding!( modkey: MODKEY, callback: |state| { state.prev_workspace(); }, key: XK_Left );
-        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(0); }, key: XK_1 );
-        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(1); }, key: XK_2 );
-        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(2); }, key: XK_3 );
-        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(3); }, key: XK_4 );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(0); }, key: XK_1 );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(1); }, key: XK_2 );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(2); }, key: XK_3 );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(3); }, key: XK_4 );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.close_active();}, key: XK_c );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(0, 40);}, key: XK_Down );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(0, -40);}, key: XK_Up );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(-40, 0);}, key: XK_Left );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(40, 0);}, key: XK_Right );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_resize(40, 40);}, key: XK_plus );
-        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_resize(-40, -40);}, key: XK_minus );
-        set_keybinding!( modkey: MODKEY_CTRL, callback: |state| {toggle_active_window_prop!(state, floating_windows);}, key: XK_space );
+        set_keybinding!( modkey: MODKEY, callback: |_| {spawn_with_shell!("alacritty");}, key: keysym::XK_Return );
+        set_keybinding!( modkey: MODKEY, callback: |_| {spawn_with_shell!("dmenu_run");}, key: keysym::XK_r );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.focus_next();}, key: keysym::XK_j );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.focus_previous();}, key: keysym::XK_k );
+        set_keybinding!( modkey: MODKEY, callback: |state| {toggle_active_window_prop!(state, fullscreen_windows);}, key: keysym::XK_f );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.separator_modify(40)}, key: keysym::XK_l );
+        set_keybinding!( modkey: MODKEY, callback: |state| {state.separator_modify(-40)}, key: keysym::XK_h );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.next_workspace(); }, key: keysym::XK_Right );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.prev_workspace(); }, key: keysym::XK_Left );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(0); }, key: keysym::XK_1 );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(1); }, key: keysym::XK_2 );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(2); }, key: keysym::XK_3 );
+        set_keybinding!( modkey: MODKEY, callback: |state| { state.goto_workspace(3); }, key: keysym::XK_4 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(0); }, key: keysym::XK_1 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(1); }, key: keysym::XK_2 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(2); }, key: keysym::XK_3 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| { state.send_active_window_to_workspace(3); }, key: keysym::XK_4 );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.close_active();}, key: keysym::XK_c );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(0, 40);}, key: keysym::XK_Down );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(0, -40);}, key: keysym::XK_Up );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(-40, 0);}, key: keysym::XK_Left );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_move(40, 0);}, key: keysym::XK_Right );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_resize(40, 40);}, key: keysym::XK_plus );
+        set_keybinding!( modkey: MODKEY_SHIFT, callback: |state| {state.active_floating_resize(-40, -40);}, key: keysym::XK_minus );
+        set_keybinding!( modkey: MODKEY_CTRL, callback: |state| {toggle_active_window_prop!(state, floating_windows);}, key: keysym::XK_space );
     }
 
     /* startup apps */
@@ -95,7 +94,7 @@ pub fn make(state: &mut state::State){
     /* default workspaces config */
     {
         set_spaces!(state, ["一", "二", "三", "四"]);
-        let screen_width = unsafe{XDisplayWidth(state.dpy, state.screen) as u32};
+        let screen_width = unsafe{xlib::XDisplayWidth(state.dpy, state.screen) as u32};
 
         for space in state.workspaces.iter_mut() {
             space.custom = Some(CustomData {
@@ -115,13 +114,13 @@ pub fn make(state: &mut state::State){
 
 pub struct CustomData {
     pub separator: u32 /* used by cascade_autotiling */,
-    pub fullscreen_windows: HashSet<Window>,
-    pub floating_windows: HashSet<Window>,
+    pub fullscreen_windows: HashSet<xlib::Window>,
+    pub floating_windows: HashSet<xlib::Window>,
     pub rightclick_grab_origin: (i32, i32),
-    pub rightclick_grab_window: Window,
+    pub rightclick_grab_window: xlib::Window,
     pub rightclick_grabbing: bool,
     pub leftclick_d: (i32, i32),
-    pub leftclick_grab_window: Window,
+    pub leftclick_grab_window: xlib::Window,
     pub leftclick_grabbing: bool
 }
 
@@ -140,9 +139,9 @@ macro_rules! custom {
 impl state::State<'_> {
     pub fn retile(&mut self){
         /* configurable grouping logic */
-        let mut tiled_windows: Vec<Window> = Vec::new();
-        let mut fullscreen_windows: Vec<Window> = Vec::new();
-        let mut floating_windows: Vec<Window> = Vec::new();
+        let mut tiled_windows: Vec<xlib::Window> = Vec::new();
+        let mut fullscreen_windows: Vec<xlib::Window> = Vec::new();
+        let mut floating_windows: Vec<xlib::Window> = Vec::new();
 
         if let Some(_) = &mut active_workspace!(self).custom {
             for window in active_workspace!(self).windows.iter(){
@@ -172,17 +171,17 @@ impl state::State<'_> {
         }
     }
     
-    fn draw_fullscreen_windows(&mut self, windows: &Vec<Window>){
-        let screen_width: u32 = unsafe{XDisplayWidth(self.dpy, self.screen) as u32};
-        let screen_height = unsafe{XDisplayHeight(self.dpy, self.screen) as u32};
+    fn draw_fullscreen_windows(&mut self, windows: &Vec<xlib::Window>){
+        let screen_width: u32 = unsafe{xlib::XDisplayWidth(self.dpy, self.screen) as u32};
+        let screen_height = unsafe{xlib::XDisplayHeight(self.dpy, self.screen) as u32};
     
         for window in windows {
-            unsafe { XRaiseWindow(self.dpy, *window) };       
+            unsafe { xlib::XRaiseWindow(self.dpy, *window) };       
             window.do_map(self, (0, 0, screen_width, screen_height));
         }
     }
 
-    fn draw_floating_windows(&mut self, windows: &Vec<Window>){
+    fn draw_floating_windows(&mut self, windows: &Vec<xlib::Window>){
         for window in windows.iter() {
             let rect = window.get_rect(self);
             window.do_map(self,  rect);    
@@ -219,7 +218,7 @@ impl state::State<'_> {
         custom!(self).leftclick_d = (x - rect.0, y - rect.1);
     }
 
-    fn leftclick_release(&mut self, pt: (i32, i32)){
+    fn leftclick_release(&mut self, _: (i32, i32)){
         if active_workspace!(self).custom.is_none() { return };
         custom!(self).leftclick_grabbing = false;
         self.active.focus_locked = false;
@@ -233,7 +232,7 @@ impl state::State<'_> {
         custom!(self).rightclick_grab_window = self.active.window;
     }
 
-    fn rightclick_release(&mut self, (x, y): (i32, i32)){
+    fn rightclick_release(&mut self, _: (i32, i32)){
         if let Some(custom) = &mut active_workspace!(self).custom {
             custom.rightclick_grab_origin = (0,0);
             custom.rightclick_grabbing = false;
@@ -281,6 +280,11 @@ impl state::State<'_> {
                 }
                 return;
             }
+
+            // for window in active_workspace_wins!(self).iter() {
+            //     window.get_rect(self);
+
+            // }
         }
     }
 

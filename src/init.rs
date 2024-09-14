@@ -1,15 +1,9 @@
-use x11::xft::{XftColor, XftColorAllocName};
-use x11::xlib::{Button3, ButtonPressMask, ButtonReleaseMask, PointerMotionMask, CWCursor, CWEventMask, GrabModeAsync, PropModeReplace, True, XChangeWindowAttributes, XDefaultColormap, XDefaultGC, XDefaultVisual, XFlush, XGrabButton, XGrabKey, XMapWindow, XSetWindowAttributes, XWhitePixel, XA_WINDOW};
-use x11::xlib::{self, False, XChangeProperty, XCreateSimpleWindow, XCreateWindow, XSync};
-use x11::xrender::XRenderColor;
-use std::ffi::CStr;
-use std::ffi::CString;
-use std::ptr::null;
 use std::mem;
 
-use crate::config::{CustomData, STYLE};
-use crate::wm;
-use crate::style::{self};
+use x11::xlib::{ButtonPressMask, ButtonReleaseMask, PointerMotionMask, CWCursor, CWEventMask, GrabModeAsync, True, XChangeWindowAttributes, XGrabButton, XGrabKey, XSetWindowAttributes};
+use x11::xlib::{self, False, XSync};
+
+use crate::config::STYLE;
 use crate::state::{Active, Cursor, State, KEYBINDINGS, MOUSEMOTIONS};
 
 use super::error;
