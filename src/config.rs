@@ -48,12 +48,12 @@ const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
 pub fn make(state: &mut state::State){
     /* mouse motion */
     {
-        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| {state.rightclick_grab(pt)}, mousebutton: 3);
-        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt, _| {state.rightclick_release(pt)}, mousebutton: 3 );
-        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| {state.leftclick_grab(pt)}, mousebutton: 1 );
-        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt, _| {state.leftclick_release(pt)}, mousebutton: 1 );
-        set_mousemotion!( on_move, modkey: MODKEY, callback: |state, pt, _| {state.mouse_move(pt)}, nobutton );
-        set_mousemotion!( on_cross, modkey: MODKEY, callback: |state, _, window| {state.mouse_cross(window)}, nobutton );
+        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| { state.rightclick_grab(pt)}, mousebutton: 3);
+        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt, _| { state.rightclick_release(pt)}, mousebutton: 3 );
+        set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| { state.leftclick_grab(pt)}, mousebutton: 1 );
+        set_mousemotion!( on_release, modkey: MODKEY, callback: |state, pt, _| { state.leftclick_release(pt)}, mousebutton: 1 );
+        set_mousemotion!( on_move, modkey: MODKEY, callback: |state, pt, _| { state.mouse_move(pt)}, nobutton );
+        set_mousemotion!( on_cross, modkey: MODKEY, callback: |state, _, window| { state.mouse_cross(window)}, nobutton );
     }
     
     /* keybindings */
@@ -127,6 +127,12 @@ pub struct CustomData {
 macro_rules! is_floating {
     ($state: expr, $window: expr) => {
         active_workspace!($state).custom.as_ref().unwrap().floating_windows.contains($window)
+    };
+}
+
+macro_rules! is_fullscreen {
+    ($state: expr, $window: expr) => {
+        active_workspace!($state).custom.as_ref().unwrap().fullscreen_windows.contains($window)
     };
 }
 
@@ -282,9 +288,18 @@ impl state::State<'_> {
         }
     }
 
-    fn mouse_cross(&mut self, _window: xlib::Window) {
+    fn mouse_cross(&mut self, window: xlib::Window) {
         if active_workspace!(self).custom.is_none() { return };
+        if !custom!(self).leftclick_grabbing { return };
         if is_floating!(self, &active_workspace!(self).custom.as_ref().unwrap().leftclick_grab_window) { return };
+        let leftclick_grab_window = custom!(self).leftclick_grab_window;
+        let maybe_ix1: Option<usize> = active_workspace_wins!(self).iter().position(|x| *x == window);
+        let maybe_ix2: Option<usize> = active_workspace_wins!(self).iter().position(|x| *x == leftclick_grab_window);
+        if maybe_ix1.is_none() { return }
+        if maybe_ix2.is_none() { return }
+        if is_floating!(self, &window) || is_fullscreen!(self, &window) { return }
+        active_workspace_wins!(self).swap(maybe_ix1.unwrap(), maybe_ix2.unwrap());
+        self.retile();
     }
 }
 

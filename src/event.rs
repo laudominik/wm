@@ -19,7 +19,7 @@ macro_rules! callback {
 
 pub fn handle(state: &mut State, ev: xlib::XEvent){
     let ty = ev.get_type();
-    println!("Event received: type={}", ty);
+    println!("xroagwem: event received: type={}", ty);
     match ty {
         xlib::MapRequest => callback!(state, map_request, ev),
         xlib::KeyPress => callback!(state, key, ev),
@@ -29,12 +29,11 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
         xlib::ButtonRelease => callback!(state, button_released, button, ev),
         xlib::MotionNotify => callback!(state, motion, ev),
         xlib::UnmapNotify => callback!(state, unmap, ev),
-        _ => println!("Unhandled event")
+        _ => println!("xroagwem: unhandled event")
     }
 }
 
 fn map_request(state: &mut State, ev: xlib::XMapRequestEvent) {
-    println!("Map request");
     let mut wa : XWindowAttributes = unsafe { mem::zeroed() };
     if( unsafe { XGetWindowAttributes(state.dpy, ev.window, &mut wa) } == 0) { return };
 
@@ -47,17 +46,23 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent) {
 }   
 
 
-fn destroy_window(state: &mut State, ev: xlib::XDestroyWindowEvent) {
+fn destroy_window(_: &mut State, __: xlib::XDestroyWindowEvent) {
+    /* WARNING: there's some issue with XDestroyWindowEvent.window                    */
+    /* it seems to be getting incorrect window value (not the actually destroyed one) */
+    /* so for now using unmap (but need to be sure unmap is called AFTER              */
+    /* switching active_workspace for changing workspaces                             */
+    /* otherwise all windows will commit suicide)                                     */
+}
+
+fn unmap(state: &mut State, ev: xlib::XUnmapEvent) { 
     active_workspace_wins!(state).retain(|x| *x != ev.window);
     if ev.window == state.active.window {
         state.focus_next();
     }
-
     state.retile();
-    println!("Window destroyed!");
-}
 
-fn unmap(_: &mut State, __: xlib::XUnmapEvent) { }
+    unsafe { XSync(state.dpy, False); }
+}
 
 fn key(state: &mut State, ev: xlib::XKeyEvent) {
     let keysym = unsafe { XKeycodeToKeysym(state.dpy, ev.keycode as u8, 0) } as u32;
@@ -98,11 +103,11 @@ macro_rules! mm_invoke_callback {
 }
 
 fn crossing(state: &mut State, ev: xlib::XCrossingEvent) {
+    mm_invoke_callback!(state, on_cross, ev, ev.window, nobutton);
     if ev.window == state.root { return };
     if state.active.focus_locked { return };
     state.focus(ev.window);
     state.retile();
-    mm_invoke_callback!(state, on_cross, ev, nobutton);
 }
 
 fn button_pressed(state: &mut State, ev: xlib::XButtonEvent){ mm_invoke_callback!(state, on_press, ev); }

@@ -1,4 +1,4 @@
-use x11::xlib;
+use x11::xlib::{self, XGrabServer};
 use std::mem;
 
 use crate::{config::{CustomData, STYLE}, state};
@@ -100,13 +100,10 @@ impl state::State<'_> {
     }
 
     pub fn close_active(&mut self){
-        println!("closing... {}", self.active.window);
         if active_workspace_wins!(self).is_empty() { return; }
         active_workspace_wins!(self).retain(|x| *x != self.active.window);
         self.retile();
-        unsafe {    
-            xlib::XDestroyWindow(self.dpy, self.active.window);
-        }
+        self.kill_window_process(self.active.window);
     }
 
     fn window_exists(&self, window: xlib::Window) -> bool {
@@ -116,6 +113,43 @@ impl state::State<'_> {
             }
         }
         return false;
+    }
+
+    pub fn kill_window_process(&mut self, window: xlib::Window) {
+        unsafe {
+            let wm_protocols = xlib::XInternAtom(self.dpy, "WM_PROTOCOLS".as_ptr() as *const i8, 0);
+            let wm_delete_window = xlib::XInternAtom(self.dpy, "WM_DELETE_WINDOW".as_ptr() as *const i8, 0);
+    
+            let mut event = x11::xlib::XClientMessageEvent {
+                type_: xlib::ClientMessage,
+                serial: 0,
+                send_event: 1,
+                display: self.dpy,
+                window: window,
+                message_type: wm_protocols,
+                format: 32,
+                data: std::mem::zeroed(),
+            };
+    
+            event.data.set_long(0, wm_delete_window as i64);
+            event.data.set_long(0, x11::xlib::CurrentTime as i64);
+    
+            xlib::XSendEvent(
+                self.dpy,
+                window,
+                0,
+                0,
+                &mut event as *mut _ as *mut _,
+            );
+    
+            xlib::XSync(self.dpy, 0);
+
+            XGrabServer(self.dpy);
+            xlib::XSetCloseDownMode(self.dpy, xlib::DestroyAll);
+            xlib::XKillClient(self.dpy, window);
+            xlib::XSync(self.dpy, xlib::False);
+            xlib::XUngrabServer(self.dpy);
+        }
     }
 
     pub fn cascade_autotiling(&mut self, windows: Vec<xlib::Window>){
@@ -173,7 +207,7 @@ pub trait WindowExt {
 impl WindowExt for xlib::Window {
     fn do_map(self, state: &mut state::State, rect: (i32, i32, u32, u32)){
         if !state.window_exists(self) { 
-            println!("Warning: mapping a deleted window");
+            println!("xroagwem: warning - mapping a deleted window");
             return 
         }
 

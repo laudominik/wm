@@ -20,7 +20,7 @@ pub fn main() {
     env::set_var("DISPLAY", ":1");
     match Some(unsafe{&mut(*xlib::XOpenDisplay(ptr::null()))}) {
         None => {
-            println!("Cannot initialize display!");
+            println!("xroagwem: cannot initialize display!");
             exit(1);
         },
         Some(dpy) => {
