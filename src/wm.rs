@@ -1,7 +1,7 @@
 use x11::xlib::{self, XGrabServer};
 use std::mem;
 
-use crate::{config::{CustomData, STYLE}, state};
+use crate::{config::{CustomData, STYLE}, state::{self, WIDGETS}};
 
 pub struct Space<'a> {
     pub tag: &'a str,
@@ -196,6 +196,13 @@ impl state::State<'_> {
                 (screen_width - middle) - useless_gap * 2 - border * 2 - STYLE.paddings.right, increment - useless_gap * 2 - border * 2
             ));
         }
+    }
+
+    pub fn draw_widgets(&mut self){
+        for widget in unsafe { WIDGETS.iter() } {
+            widget.draw(self);
+        }
+      
     }
 }
 

@@ -10,6 +10,7 @@ mod wm;
 mod config;
 mod style;
 mod util;
+mod widgets;
 
 pub fn loop_poll_events(state: &mut state::State){
     let mut ev : xlib::XEvent = unsafe { mem::zeroed() };

@@ -9,6 +9,7 @@ Window manager written in Rust. Heavily inspired by DWM. The goal is to support 
 * mouse motions ✔
 * multiple workspaces ✔
 * keybindings ✔
+* resetting the wm
 * two screens support
 
 See [config.rs](src/config.rs) for my wm configuration.

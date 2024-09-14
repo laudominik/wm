@@ -2,6 +2,7 @@ use std::mem;
 
 use x11::xlib::{self, EnterWindowMask, False, PointerMotionMask, StructureNotifyMask, XGetWindowAttributes, XKeycodeToKeysym, XSelectInput, XSync, XWindowAttributes};
 
+//use crate::init::widget_window;
 use crate::state::MOUSEMOTIONS;
 use crate::{active_workspace_wins, state::{State, KEYBINDINGS}, };
 
@@ -30,6 +31,7 @@ pub fn handle(state: &mut State, ev: xlib::XEvent){
         xlib::MotionNotify => callback!(state, motion, ev),
         xlib::UnmapNotify => callback!(state, unmap, ev),
         xlib::ConfigureNotify => callback!(state, configure_request, ev),
+        xlib::Expose => callback!(state, expose, ev),
         _ => println!("xroagwem: unhandled event")
     }
 }
@@ -46,7 +48,9 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent) {
     unsafe {XSync(state.dpy, False)};
 }   
 
-fn configure_request(state: &mut State, _: xlib::XConfigureRequestEvent) { unsafe { xlib::XSync(state.dpy, xlib::False); } }
+fn expose(_: &mut State, __: xlib::XExposeEvent) { }
+
+fn configure_request(_: &mut State, __: xlib::XConfigureRequestEvent) { }
 
 fn destroy_window(_: &mut State, __: xlib::XDestroyWindowEvent) {
     /* WARNING: there's some issue with XDestroyWindowEvent.window                    */

@@ -73,3 +73,14 @@ macro_rules! set_mousemotion {
         }
     };
 }
+
+#[macro_export]
+macro_rules! add_widget {
+    ($widget: expr) => {
+        {
+            unsafe {
+                WIDGETS.push(Box::new($widget));
+            }
+        }
+    };
+}

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use x11::xlib::{self, Window};
+use x11::{xft::XftDraw, xlib::{self, Window}};
 
-use crate::{style::ColorSchemesXft, wm};
+use crate::{style::ColorSchemesXft, widgets, wm};
 
 pub type Cursor = Cursor_<xlib::Cursor>;
 
@@ -15,6 +15,8 @@ pub struct Cursor_<T> {
 pub struct State<'a> {
     pub screen: i32,
     pub root: xlib::Window,
+    pub draw: xlib::Window,
+    pub xft_draw: *mut XftDraw,
     pub cursor: Cursor,
     pub dpy: &'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
@@ -28,6 +30,7 @@ pub struct Active {
     pub focus_locked: bool,
 }
 
+pub static mut WIDGETS: Vec<Box<dyn widgets::Widget>> = Vec::new();
 pub static mut KEYBINDINGS : Vec<Keybinding> = Vec::new();
 
 macro_rules! mousemotion_type_decl {

@@ -5,9 +5,12 @@ use std::sync::Arc;
 use x11::keysym;
 use x11::xlib;
 
+use crate::add_widget;
+use crate::state::WIDGETS;
 use crate::state::{self, Keybinding, Mousemotion, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::Paddings;
 use crate::style::{ColorScheme, ColorSchemes, Style};
+use crate::widgets::TopBar;
 use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
 
@@ -41,9 +44,9 @@ pub static STYLE: Style = Style {
     useless_gap: 5,
     paddings: Paddings {
         top: 20,
-        bottom: 20,
-        left: 20,
-        right: 20
+        bottom: 0,
+        left: 0,
+        right: 0
     }
 };
 
@@ -53,6 +56,11 @@ const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
 
 /* your private config goes here */
 pub fn make(state: &mut state::State){
+    /* widgets */
+    {
+        add_widget!(TopBar {});
+    }
+
     /* mouse motion */
     {
         set_mousemotion!( on_press, modkey: MODKEY, callback: |state, pt, _| { state.rightclick_grab(pt)}, mousebutton: 3);
@@ -95,7 +103,7 @@ pub fn make(state: &mut state::State){
     /* startup apps */
     {
         spawn_with_shell!("nitrogen", ["--restore"]);
-        spawn_with_shell!("picom");
+        spawn_with_shell!("picom",  ["--opacity-rule", "100:x=0", "--fade-exclude", "x=0"]);
     }
 
     /* default workspaces config */
@@ -151,6 +159,8 @@ macro_rules! custom {
 
 impl state::State<'_> {
     pub fn retile(&mut self){
+        self.draw_widgets();
+
         /* configurable grouping logic */
         let mut tiled_windows: Vec<xlib::Window> = Vec::new();
         let mut fullscreen_windows: Vec<xlib::Window> = Vec::new();

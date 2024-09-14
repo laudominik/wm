@@ -5,6 +5,7 @@ use x11::xlib::{self, False, XSync};
 
 use crate::config::STYLE;
 use crate::state::{Active, Cursor, State, KEYBINDINGS, MOUSEMOTIONS};
+use crate::widgets::widget_window;
 
 use super::error;
 use super::state;
@@ -30,7 +31,8 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
     {
         let screen =  unsafe { xlib::XDefaultScreen(dpy) };
         let root: u64 = unsafe { xlib::XRootWindow(dpy, screen) };
-    
+        let (draw, xft_draw) = widget_window(dpy);
+
         state = state::State {
             screen: screen,
             root: root,
@@ -39,14 +41,16 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
                 resize: init_cursor!(dpy, 120 /* XC sizing */),
                 mov: init_cursor!(dpy, 52  /* XC fleur */)
             },
-            dpy: dpy,
             workspaces: Vec::new(),
             colors: unsafe { mem::zeroed() },
             active: Active {
                 workspace: 0,
                 window: root,
                 focus_locked: false
-            }
+            },
+            draw: draw,
+            xft_draw: xft_draw,
+            dpy: dpy
         };
     }
     
