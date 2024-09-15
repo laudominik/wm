@@ -1,7 +1,7 @@
 use std::ffi::CString;
-use std::fmt::format;
 use std::mem;
 use std::ptr;
+use chrono::Local;
 
 use sysinfo::System;
 
@@ -10,10 +10,15 @@ use x11::xlib::{self, XSetWindowAttributes};
 use x11::{xft, xrender};
 use std::sync::Mutex;
 use lazy_static::lazy_static;
-use chrono::Local;
 
 use crate::state;
 use crate::config::STYLE;
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum Ctx {
+    Retile, 
+    Expose   
+}
 
 
 pub struct Widget {
@@ -22,8 +27,8 @@ pub struct Widget {
 }
 
 impl Widget {
-    pub fn draw(&self, state: &mut state::State){
-        self.wspec.draw(state, self);
+    pub fn draw(&self, state: &mut state::State, context:Ctx){
+        self.wspec.draw(state, self, context);
     }
 
     pub fn new(state: &mut state::State, font: &str, wspec: Box<dyn WidgetSpec>) -> Widget {
@@ -35,7 +40,7 @@ impl Widget {
 }
 
 pub trait WidgetSpec {
-    fn draw(&self, state: &mut state::State, widget: &Widget);
+    fn draw(&self, state: &mut state::State, widget: &Widget, context: Ctx);
 }
 
 pub struct TopBar {}
@@ -43,14 +48,16 @@ pub struct TaskList {}
 pub struct Stats {}
 
 impl WidgetSpec for TopBar {
-    fn draw(&self, state: &mut state::State, widget: &Widget) {
+    fn draw(&self, state: &mut state::State, widget: &Widget, context: Ctx) {
         unsafe {
             let screen_width: u32 = xlib::XDisplayWidth(state.dpy, state.screen) as u32;
             let box_wh = STYLE.paddings.top;
-            let pad: i32 = text_width_px(state, widget.font, state.workspaces[0].tag) / 4;
-
-            xft::XftDrawRect(state.xft_draw, &state.colors.normal.bg, 0, 0, screen_width, STYLE.paddings.top);
-
+            let pad: i32 = text_width_px(state, widget.font, state.workspaces[0].tag) / 2;
+            
+            if context == Ctx::Expose {
+                xft::XftDrawRect(state.xft_draw, &state.colors.normal.bg, 0, 0, screen_width, STYLE.paddings.top);
+            }
+        
             for i in 0..state.workspaces.len() {
                 let offset = i as u32 * box_wh;
                 let mut bgcol = &state.colors.normal.bg;
@@ -68,7 +75,7 @@ impl WidgetSpec for TopBar {
 }
 
 impl WidgetSpec for TaskList {
-    fn draw(&self, _: &mut state::State, __: &Widget) {}
+    fn draw(&self, _: &mut state::State, __: &Widget, ___: Ctx) {}
 }
 
 lazy_static! {
@@ -76,19 +83,34 @@ lazy_static! {
 }
 
 impl WidgetSpec for Stats {
-    fn draw(&self, state: &mut state::State, widget: &Widget) {
+    fn draw(&self, state: &mut state::State, widget: &Widget, context: Ctx) {
+        if context != Ctx::Expose { return }
         let mut sys = SYS.lock().unwrap();
+        let screen_width = unsafe { xlib::XDisplayWidth(state.dpy, state.screen) as i32 };
         sys.refresh_all();
 
-        let cpu: String = format!("{:02} % CPU", sys.global_cpu_usage() as u32);
-        let w_cpu = text_width_px(state, widget.font, cpu.as_str());
-        
-        unsafe {
-            let screen_width: u32 = xlib::XDisplayWidth(state.dpy, state.screen) as u32;
-            let utf8_string = CString::new(cpu).unwrap();
-            let x =screen_width as i32 - w_cpu;
-            xft::XftDrawRect(state.xft_draw, &state.colors.normal.fg, x, 0, w_cpu as u32, STYLE.paddings.top);
-            xft::XftDrawStringUtf8(state.xft_draw, &state.colors.normal.bg, widget.font, x, STYLE.paddings.top as i32, utf8_string.as_ptr() as *const u8, utf8_string.to_bytes().len() as i32);
+        let mem_usg = (sys.used_memory() as f32 / sys.total_memory() as f32) * 100f32;
+
+        let stats = [
+            format!("{:02} % CPU", sys.global_cpu_usage() as u32),
+            format!("{}", Local::now()),
+            format!("{:02} % ({} / {} MiB)", mem_usg as u32, sys.used_memory() / 1024 / 1024, sys.total_memory() / 1024 / 1024)
+        ];
+
+        let mut offset = 0;
+        let brk = text_width_px(state, widget.font, "A");
+        let pad = brk / 2;
+
+        for stat in stats.iter() {
+            let w = text_width_px(state, widget.font, stat.as_str());
+            offset += w;
+            offset += brk;
+
+            unsafe {
+                let utf8_string: CString = CString::new((*stat).clone()).unwrap();
+                xft::XftDrawRect(state.xft_draw, &state.colors.normal.fg, screen_width - offset - brk, 0, (brk + w + brk) as u32, STYLE.paddings.top);
+                xft::XftDrawStringUtf8(state.xft_draw, &state.colors.normal.bg, widget.font, screen_width - offset, STYLE.paddings.top as i32 - pad, utf8_string.as_ptr() as *const u8, utf8_string.to_bytes().len() as i32);
+            }
         }
     }
 }

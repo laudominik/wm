@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use x11::{xft::XftDraw, xlib::{self, Window}};
 

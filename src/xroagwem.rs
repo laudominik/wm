@@ -1,7 +1,8 @@
 
+use config::WIDGET_REFRESH;
 use widgets::widget_refresh;
 use x11::xlib::{self, XNextEvent};
-use std::{env, mem, process::exit, ptr, thread, time::Duration};
+use std::{env, mem, process::exit, ptr, thread};
 
 mod init;
 mod error;
@@ -35,7 +36,7 @@ pub fn main() {
             thread::spawn(|| {
                 loop {
                     widget_refresh();
-                    thread::sleep(Duration::from_secs(1));
+                    thread::sleep(WIDGET_REFRESH);
                 }
             });
             loop_poll_events(&mut state);

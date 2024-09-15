@@ -4,6 +4,7 @@ use x11::xlib::{self, EnterWindowMask, False, PointerMotionMask, StructureNotify
 
 //use crate::init::widget_window;
 use crate::state::MOUSEMOTIONS;
+use crate::widgets::Ctx;
 use crate::{active_workspace_wins, state::{State, KEYBINDINGS}, };
 
 
@@ -48,8 +49,8 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent) {
     unsafe {XSync(state.dpy, False)};
 }   
 
-fn expose(_: &mut State, __: xlib::XExposeEvent) { 
-    println!("EXPOSE !!!");
+fn expose(state: &mut State, __: xlib::XExposeEvent) { 
+    state.draw_widgets(Ctx::Expose);
 }
 
 fn configure_request(_: &mut State, __: xlib::XConfigureRequestEvent) { }

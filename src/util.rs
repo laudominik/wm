@@ -85,7 +85,7 @@ macro_rules! add_widget {
                             $state, 
                             "",
                             Box::new($widget {})
-                        );
+                        )
                     )
                 )
             }

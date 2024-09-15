@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::process::Command;
 use std::sync::Arc;
-use std::thread::spawn;
+use std::time::Duration;
 
 use x11::keysym;
 use x11::xlib;
@@ -11,6 +11,7 @@ use crate::state::WIDGETS;
 use crate::state::{self, Keybinding, Mousemotion, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::Paddings;
 use crate::style::{ColorScheme, ColorSchemes, Style};
+use crate::widgets::Ctx;
 use crate::widgets::Stats;
 use crate::widgets::{TopBar, Widget};
 use crate::wm::WindowExt;
@@ -52,6 +53,8 @@ pub static STYLE: Style = Style {
     }
 };
 
+pub static WIDGET_REFRESH: Duration = Duration::from_secs(15);
+
 const MODKEY: u32 = xlib::Mod4Mask;
 const MODKEY_SHIFT: u32 = MODKEY |  xlib::ShiftMask;
 const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
@@ -61,6 +64,7 @@ pub fn make(state: &mut state::State){
     /* widgets */
     {
         add_widget!(state, TopBar, "Noto Sans CJK JP-12");
+        add_widget!(state, Stats, "Noto Sans-12");
     }
 
     /* mouse motion */
@@ -163,7 +167,7 @@ macro_rules! custom {
 
 impl state::State<'_> {
     pub fn retile(&mut self){
-        self.draw_widgets();
+        self.draw_widgets(Ctx::Retile);
 
         /* configurable grouping logic */
         let mut tiled_windows: Vec<xlib::Window> = Vec::new();

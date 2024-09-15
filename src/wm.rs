@@ -1,7 +1,7 @@
 use x11::xlib::{self, XGrabServer};
 use std::mem;
 
-use crate::{config::{CustomData, STYLE}, state::{self, WIDGETS}};
+use crate::{config::{CustomData, STYLE}, state::{self, WIDGETS}, widgets::Ctx};
 
 pub struct Space<'a> {
     pub tag: &'a str,
@@ -199,9 +199,9 @@ impl state::State<'_> {
         }
     }
 
-    pub fn draw_widgets(&mut self){
+    pub fn draw_widgets(&mut self, context: Ctx){
         for widget in unsafe { WIDGETS.iter() } {
-            widget.draw(self);
+            widget.draw(self, context.clone());
         }
       
     }
