@@ -58,7 +58,7 @@ const MODKEY_CTRL: u32 = MODKEY |  xlib::ControlMask;
 pub fn make(state: &mut state::State){
     /* widgets */
     {
-        add_widget!(TopBar {}, "Noto Sans CJK JP-12");
+        add_widget!(state, TopBar, "Noto Sans CJK JP-12");
     }
 
     /* mouse motion */

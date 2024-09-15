@@ -76,29 +76,31 @@ macro_rules! set_mousemotion {
 
 #[macro_export]
 macro_rules! add_widget {
-    ($widget: expr) => {
+    ($state: expr, $widget: ident) => {
         {
             unsafe {
                 WIDGETS.push(
                     Box::new(
-                        Widget {
-                            wspec: Box::new($widget),
-                            font: ""
-                        }
+                        Widget::new(
+                            $state, 
+                            "",
+                            Box::new($widget {})
+                        );
                     )
                 )
             }
         }
     };
-    ($widget: expr, $font: expr) => {
+    ($state:expr, $widget: ident, $font: expr) => {
         {
             unsafe {
                 WIDGETS.push(
                     Box::new(
-                        Widget {
-                            wspec: Box::new($widget),
-                            font: $font
-                        }
+                        Widget::new(
+                            $state, 
+                            $font,
+                            Box::new($widget {})
+                        )
                     )
                 )
             }

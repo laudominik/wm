@@ -6,4 +6,7 @@ links = "X11"
 build = "build.rs"
 
 [dependencies]
+chrono = "0.4.38"
+lazy_static = "1.5.0"
+sysinfo = "0.31.4"
 x11 = "2.21.0"
