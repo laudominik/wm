@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use x11::{xft::XftDraw, xlib::{self, Window}};
 
@@ -18,7 +18,7 @@ pub struct State<'a> {
     pub draw: xlib::Window,
     pub xft_draw: *mut XftDraw,
     pub cursor: Cursor,
-    pub dpy: &'a mut xlib::Display,
+    pub dpy:&'a mut xlib::Display,
     pub workspaces: Vec<wm::Space<'a>>,
     pub colors : ColorSchemesXft,
     pub active: Active,

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::process::Command;
 use std::sync::Arc;
+use std::thread::spawn;
 
 use x11::keysym;
 use x11::xlib;
@@ -10,6 +11,7 @@ use crate::state::WIDGETS;
 use crate::state::{self, Keybinding, Mousemotion, KEYBINDINGS, MOUSEMOTIONS};
 use crate::style::Paddings;
 use crate::style::{ColorScheme, ColorSchemes, Style};
+use crate::widgets::Stats;
 use crate::widgets::{TopBar, Widget};
 use crate::wm::WindowExt;
 use crate::{active_workspace, active_workspace_wins, set_keybinding, set_mousemotion, set_spaces, spawn_with_shell, wm};
@@ -104,6 +106,7 @@ pub fn make(state: &mut state::State){
     {
         spawn_with_shell!("nitrogen", ["--restore"]);
         spawn_with_shell!("picom",  ["--opacity-rule", "100:x=0", "--fade-exclude", "x=0"]);
+        //spawn_with_shell!("./target/debug/xwidgetrefresher");
     }
 
     /* default workspaces config */

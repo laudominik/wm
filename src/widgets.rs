@@ -5,6 +5,7 @@ use std::ptr;
 
 use sysinfo::System;
 
+use x11::xlib::ExposureMask;
 use x11::xlib::{self, XSetWindowAttributes};
 use x11::{xft, xrender};
 use std::sync::Mutex;
@@ -82,27 +83,30 @@ impl WidgetSpec for Stats {
         let cpu: String = format!("{:02} % CPU", sys.global_cpu_usage() as u32);
         let w_cpu = text_width_px(state, widget.font, cpu.as_str());
         
-        // unsafe {
-        //     let screen_width: u32 = xlib::XDisplayWidth(state.dpy, state.screen) as u32;
-        //     let utf8_string = CString::new(cpu).unwrap();
-        //     let x =screen_width as i32 - w_cpu;
-        //     xft::XftDrawRect(state.xft_draw, &state.colors.normal.fg, x, 0, w_cpu as u32, STYLE.paddings.top);
-        //     xft::XftDrawStringUtf8(state.xft_draw, &state.colors.normal.bg, widget.font, x, STYLE.paddings.top as i32, utf8_string.as_ptr() as *const u8, utf8_string.to_bytes().len() as i32);
-        // }
+        unsafe {
+            let screen_width: u32 = xlib::XDisplayWidth(state.dpy, state.screen) as u32;
+            let utf8_string = CString::new(cpu).unwrap();
+            let x =screen_width as i32 - w_cpu;
+            xft::XftDrawRect(state.xft_draw, &state.colors.normal.fg, x, 0, w_cpu as u32, STYLE.paddings.top);
+            xft::XftDrawStringUtf8(state.xft_draw, &state.colors.normal.bg, widget.font, x, STYLE.paddings.top as i32, utf8_string.as_ptr() as *const u8, utf8_string.to_bytes().len() as i32);
+        }
     }
 }
 
-pub fn widget_refresh(dpy: *mut xlib::_XDisplay) {
+pub fn widget_refresh() {
+
     println!("Refresh!");
     unsafe {
-        let root_window = xlib::XDefaultRootWindow(dpy);
+        let dpy: *mut xlib::_XDisplay = xlib::XOpenDisplay(ptr::null());
+        let root_window: u64 = xlib::XDefaultRootWindow(dpy);
+        
         let mut event = xlib::XEvent {
             expose: xlib::XExposeEvent {
-                type_: 0,
+                type_: xlib::Expose,
                 serial: 0,
                 send_event: 0,
-                display: dpy,
-                window: root_window,
+                display: ptr::null_mut(),
+                window: 69,
                 x: 0,
                 y: 0,
                 width: 0,
@@ -111,8 +115,10 @@ pub fn widget_refresh(dpy: *mut xlib::_XDisplay) {
             }
         };
 
-        xlib::XSendEvent(dpy, root_window, 0, 0, &mut event);
+        xlib::XSendEvent(dpy, root_window, 0, ExposureMask, &mut event);
+        xlib::XFlush(dpy);
     }
+
 }
 
 pub fn widget_window(dpy: *mut xlib::Display ) -> (xlib::Window, *mut xft::XftDraw)  {
@@ -152,6 +158,5 @@ fn text_width_px(state: &mut state::State, font: *mut xft::XftFont, string: &str
         );
 
         return extents.width as i32;
-    }
-    
+    }   
 }

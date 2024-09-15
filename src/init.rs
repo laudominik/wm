@@ -75,6 +75,7 @@ pub fn setup(dpy: &mut xlib::Display) -> state::State {
                         xlib::PointerMotionMask | 
                         xlib::EnterWindowMask | 
                         xlib::LeaveWindowMask | 
+                        xlib::ExposureMask |
                         xlib::StructureNotifyMask | 
                         xlib::PropertyChangeMask | 
                         xlib::KeyPressMask | 

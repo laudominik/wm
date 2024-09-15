@@ -5,6 +5,10 @@ edition = "2021"
 links = "X11"
 build = "build.rs"
 
+[[bin]]
+name = "xroagwem"
+path = "src/xroagwem.rs"
+
 [dependencies]
 chrono = "0.4.38"
 lazy_static = "1.5.0"

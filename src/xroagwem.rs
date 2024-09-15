@@ -1,6 +1,7 @@
 
+use widgets::widget_refresh;
 use x11::xlib::{self, XNextEvent};
-use std::{env, mem, process::exit, ptr};
+use std::{env, mem, process::exit, ptr, thread, time::Duration};
 
 mod init;
 mod error;
@@ -31,6 +32,12 @@ pub fn main() {
             config::make(&mut state);
             init::setup_keybindings(&mut state);
             init::setup_mousemotions(&mut state);
+            thread::spawn(|| {
+                loop {
+                    widget_refresh();
+                    thread::sleep(Duration::from_secs(1));
+                }
+            });
             loop_poll_events(&mut state);
         }
     }    

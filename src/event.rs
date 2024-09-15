@@ -48,7 +48,9 @@ fn map_request(state: &mut State, ev: xlib::XMapRequestEvent) {
     unsafe {XSync(state.dpy, False)};
 }   
 
-fn expose(_: &mut State, __: xlib::XExposeEvent) { }
+fn expose(_: &mut State, __: xlib::XExposeEvent) { 
+    println!("EXPOSE !!!");
+}
 
 fn configure_request(_: &mut State, __: xlib::XConfigureRequestEvent) { }
 

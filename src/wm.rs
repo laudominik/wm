@@ -141,6 +141,7 @@ impl state::State<'_> {
                 0,
                 &mut event as *mut _ as *mut _,
             );
+            xlib::XFlush(self.dpy);
     
             xlib::XSync(self.dpy, 0);
 
